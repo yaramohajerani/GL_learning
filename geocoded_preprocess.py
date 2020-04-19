@@ -68,10 +68,10 @@ def main():
 	#-- loop through files, read, and preprocess
 	#-- save each file to output directory so we don't have to read them all at once
 	n_train = len(img_list) - n_test
-	for f in img_list[:n_train]:
+	for f in img_list[:20]: #[:n_train]:
 		#-- IMAGE
 		if (not os.path.exists(os.path.join(out_train,f.replace('.tif','.npy')))):
-			img = np.ones((n_img,w,h,2))
+			img = np.ones((n_img,h,w,2))
 			#-- read image
 			raster = rasterio.open(os.path.join(ddir,'cocotile_withoutnull_v1',f))
 			img[0,:,:,0] = raster.read(1).real
@@ -92,22 +92,22 @@ def main():
 		#-- TRAINING LABELS
 		if (not os.path.exists(os.path.join(out_train,\
 				f.replace('coco','delineation').replace('.tif','.npy')))):
-			lbl = np.ones((n_img,w,h,1),dtype=np.int8)
+			lbl = np.ones((n_img,h*w,1),dtype=np.int8)
 			#-- read label
 			raster = rasterio.open(os.path.join(ddir,'delineationtile_withoutnull_v1',
 				f.replace('coco','delineation')))
 			if dilate:
-				lbl[0,:,:,0] = binary_dilation(np.int8(raster.read(1)/255.))
+				lbl[0,:,0] = binary_dilation(np.int8(raster.read(1)/255.)).reshape((h*w))
 				if augment:
-					lbl[1,:,:,0] = binary_dilation(np.fliplr(lbl[0,:,:,0]))
-					lbl[2,:,:,0] = binary_dilation(np.flipud(lbl[0,:,:,0]))
-					lbl[3,:,:,0] = binary_dilation(np.fliplr(np.flipud(lbl[0,:,:,0])))
+					lbl[1,:,0] = binary_dilation(np.fliplr(lbl[0,:,0]))
+					lbl[2,:,0] = binary_dilation(np.flipud(lbl[0,:,0]))
+					lbl[3,:,0] = binary_dilation(np.fliplr(np.flipud(lbl[0,:,0])))
 			else:
-				lbl[0,:,:,0] = np.int8(raster.read(1)/255.)
+				lbl[0,:,0] = np.int8(raster.read(1)/255.).reshape((h*w))
 				if augment:
-					lbl[1,:,:,0] = np.fliplr(lbl[0,:,:,0])
-					lbl[2,:,:,0] = np.flipud(lbl[0,:,:,0])
-					lbl[3,:,:,0] = np.fliplr(np.flipud(lbl[0,:,:,0]))
+					lbl[1,:,0] = np.fliplr(lbl[0,:,0])
+					lbl[2,:,0] = np.flipud(lbl[0,:,0])
+					lbl[3,:,0] = np.fliplr(np.flipud(lbl[0,:,0]))
 			#-- save arrays to file
 			for i in range(n_img):
 				if i == 0:
@@ -117,12 +117,12 @@ def main():
 				#-- save label array
 				np.save(os.path.join(out_train,\
 					f.replace('coco','delineation').replace('.tif','%s.npy'%suffix)),lbl[i])
-
+	"""
 	#-- read, process, and write TEST data
 	for f in img_list[n_train:]:
 		#-- initialize
-		img = np.ones((w,h,2))
-		lbl = np.ones((w,h,1),dtype=np.int8)
+		img = np.ones((h,w,2))
+		lbl = np.ones((h,w,1),dtype=np.int8)
 		#-- read image
 		raster = rasterio.open(os.path.join(ddir,'cocotile_withoutnull_v1',f))
 		img[:,:,0] = raster.read(1).real
@@ -138,7 +138,7 @@ def main():
 		#-- save label array
 		np.save(os.path.join(out_test,\
 			f.replace('coco','delineation').replace('.tif','.npy')),lbl)
-
+	"""
 #-- run main program
 if __name__ == '__main__':
 	main()
