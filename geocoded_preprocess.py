@@ -15,7 +15,7 @@ from skimage.morphology import binary_dilation
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','N_TEST','AUGMENT','DILATE']
+	long_options=['DIR=','N_TEST=','AUGMENT','DILATE']
 	optlist,arglist = getopt.getopt(sys.argv[1:],'D:N:AD',long_options)
 
 	#-- Set default settings
@@ -92,18 +92,18 @@ def main():
 		#-- TRAINING LABELS
 		if (not os.path.exists(os.path.join(out_train,\
 				f.replace('coco','delineation').replace('.tif','.npy')))):
-			lbl = np.ones((n_img,w,h,1))
+			lbl = np.ones((n_img,w,h,1),dtype=np.int8)
 			#-- read label
 			raster = rasterio.open(os.path.join(ddir,'delineationtile_withoutnull_v1',
 				f.replace('coco','delineation')))
 			if dilate:
-				lbl[0,:,:,0] = binary_dilation(raster.read(1))
+				lbl[0,:,:,0] = binary_dilation(np.int8(raster.read(1)/255.))
 				if augment:
 					lbl[1,:,:,0] = binary_dilation(np.fliplr(lbl[0,:,:,0]))
 					lbl[2,:,:,0] = binary_dilation(np.flipud(lbl[0,:,:,0]))
 					lbl[3,:,:,0] = binary_dilation(np.fliplr(np.flipud(lbl[0,:,:,0])))
 			else:
-				lbl[0,:,:,0] = raster.read(1)
+				lbl[0,:,:,0] = np.int8(raster.read(1)/255.)
 				if augment:
 					lbl[1,:,:,0] = np.fliplr(lbl[0,:,:,0])
 					lbl[2,:,:,0] = np.flipud(lbl[0,:,:,0])
@@ -122,7 +122,7 @@ def main():
 	for f in img_list[n_train:]:
 		#-- initialize
 		img = np.ones((w,h,2))
-		lbl = np.ones((w,h,1))
+		lbl = np.ones((w,h,1),dtype=np.int8)
 		#-- read image
 		raster = rasterio.open(os.path.join(ddir,'cocotile_withoutnull_v1',f))
 		img[:,:,0] = raster.read(1).real
@@ -131,7 +131,7 @@ def main():
 		#-- read label
 		raster = rasterio.open(os.path.join(ddir,'delineationtile_withoutnull_v1',
 			f.replace('coco','delineation')))
-		lbl[:,:,0] = raster.read(1)
+		lbl[:,:,0] = np.int8(raster.read(1))
 			
 		#-- save image array
 		np.save(os.path.join(out_test,f.replace('.tif','.npy')),img)
