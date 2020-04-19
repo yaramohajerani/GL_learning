@@ -53,11 +53,8 @@ class DataGenerator(keras.utils.Sequence):
 		# Generate data
 		for i, ID in enumerate(list_IDs_temp):
 			#-- read image
-			raster = rasterio.open(ID)
-			X[i,:,:,0] = raster.read(1).real
-			X[i,:,:,1] = raster.read(1).imag
+			X[i,] = np.load(ID)
 			#-- read labels
-			raster = rasterio.open(ID.replace('coco','delineation'))
-			y[i,:,:,0] = raster.read(1)
+			y[i,] = np.load(ID.replace('coco','delineation'))
 			
 		return X,y
