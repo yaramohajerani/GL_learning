@@ -12,13 +12,14 @@ import keras
 class DataGenerator(keras.utils.Sequence):
 	'Generates data for Keras'
 	def __init__(self, list_IDs, batch_size=10, dim=(512,512), 
-			n_channels=2, shuffle=True):
+			n_channels=2, shuffle=True, ratio=727):
 		'Initialization'
 		self.dim = dim
 		self.batch_size = batch_size
 		self.n_channels = n_channels
 		self.list_IDs = list_IDs
 		self.shuffle = shuffle
+		self.ratio = ratio
 		self.on_epoch_end()
 
 	def __len__(self):
@@ -34,9 +35,9 @@ class DataGenerator(keras.utils.Sequence):
 		list_IDs_temp = [self.list_IDs[k] for k in indexes]
 
 		# Generate data
-		X, y = self.__data_generation(list_IDs_temp)
+		X, y, w = self.__data_generation(list_IDs_temp)
 
-		return X, y
+		return X, y, w
 
 	def on_epoch_end(self):
 		'Updates indexes after each epoch'
@@ -49,11 +50,14 @@ class DataGenerator(keras.utils.Sequence):
 		# Initialization
 		X = np.empty((self.batch_size, *self.dim, self.n_channels))
 		y = np.empty((self.batch_size, self.dim[0]*self.dim[1], 1))
+		w = np.empty((self.batch_size, self.dim[0]*self.dim[1]))
 		# Generate data
 		for i, ID in enumerate(list_IDs_temp):
 			#-- read image
 			X[i,] = np.load(ID)
 			#-- read labels
 			y[i,] = np.load(ID.replace('coco','delineation'))
+			#-- get flattened weights
+			w[i,] = np.squeeze(y[i,])*self.ratio
 
-		return X,y
+		return X,y,w

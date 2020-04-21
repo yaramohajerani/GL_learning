@@ -68,7 +68,7 @@ def main():
 	#-- loop through files, read, and preprocess
 	#-- save each file to output directory so we don't have to read them all at once
 	n_train = len(img_list) - n_test
-	for f in img_list[:20]: #[:n_train]:
+	for f in img_list[:n_train]:
 		#-- IMAGE
 		if (not os.path.exists(os.path.join(out_train,f.replace('.tif','.npy')))):
 			img = np.ones((n_img,h,w,2))
@@ -117,28 +117,30 @@ def main():
 				#-- save label array
 				np.save(os.path.join(out_train,\
 					f.replace('coco','delineation').replace('.tif','%s.npy'%suffix)),lbl[i])
-	"""
+	
 	#-- read, process, and write TEST data
 	for f in img_list[n_train:]:
-		#-- initialize
-		img = np.ones((h,w,2))
-		lbl = np.ones((h,w,1),dtype=np.int8)
-		#-- read image
-		raster = rasterio.open(os.path.join(ddir,'cocotile_withoutnull_v1',f))
-		img[:,:,0] = raster.read(1).real
-		img[:,:,1] = raster.read(1).imag
+		if (not os.path.exists(os.path.join(out_test,f.replace('.tif','.npy')))):
+			#-- initialize
+			img = np.ones((h,w,2))
+			#-- read image
+			raster = rasterio.open(os.path.join(ddir,'cocotile_withoutnull_v1',f))
+			img[:,:,0] = raster.read(1).real
+			img[:,:,1] = raster.read(1).imag
+			#-- save image array
+			np.save(os.path.join(out_test,f.replace('.tif','.npy')),img)
+		if (not os.path.exists(os.path.join(out_test,\
+				f.replace('coco','delineation').replace('.tif','.npy')))):	
+			#-- initialize
+			lbl = np.ones((h*w,1),dtype=np.int8)
+			#-- read label
+			raster = rasterio.open(os.path.join(ddir,'delineationtile_withoutnull_v1',
+				f.replace('coco','delineation')))
+			lbl[:,0] = np.int8(raster.read(1)/255.).reshape((h*w))	
+			#-- save label array
+			np.save(os.path.join(out_test,\
+				f.replace('coco','delineation').replace('.tif','.npy')),lbl)
 	
-		#-- read label
-		raster = rasterio.open(os.path.join(ddir,'delineationtile_withoutnull_v1',
-			f.replace('coco','delineation')))
-		lbl[:,:,0] = np.int8(raster.read(1))
-			
-		#-- save image array
-		np.save(os.path.join(out_test,f.replace('.tif','.npy')),img)
-		#-- save label array
-		np.save(os.path.join(out_test,\
-			f.replace('coco','delineation').replace('.tif','.npy')),lbl)
-	"""
 #-- run main program
 if __name__ == '__main__':
 	main()
