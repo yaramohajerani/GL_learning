@@ -19,6 +19,9 @@ base_dir = os.path.expanduser('~/GL_learning_data/geocoded_v1')
 #-- make list of properties
 props = ['Track','D1','D2','D3','D4','O1','O2','O3','O4','T1','T2','X','Y']
 
+#-- filter for which the handrawn labels are also drawn
+hand_param = 6000
+
 #-- get meta data from file name
 def get_info(fname):
 	a = re.split('_|-',fname)
@@ -83,8 +86,19 @@ def main():
 		'O1':'int','O2':'int','O3':'int','O4':'int','T1':'str',\
 		'T2':'str','X':'str','Y':'str','Type':'str'}}
 
+	#-- read one file to get metadata
+	src = fiona.open(os.path.join(indir[t],flist[t][0]),'r')
+	meta = src.meta
+	#-- update schema
+	meta['schema'] = out_schema
+
 	#-- go through dates and read and combine all corresponding files
 	for u in ud:
+		#-- open output file for centerlines and errors
+		dst1 =  fiona.open(os.path.join(outdir,'centerline_%s%s.shp'%(u,flt_str)),'w', **meta)
+		dst2 = fiona.open(os.path.join(outdir,'errors_%s%s.shp'%(u,flt_str)),'w', **meta)
+		if filter == hand_param:
+			dst3 = fiona.open(os.path.join(outdir,'handdrawn_%s.shp'%u),'w', **meta)
 		for t in ['Train','Test']:
 			#-- get indices of all matching dates
 			ii, = np.nonzero(dates[t]==u)
@@ -93,16 +107,8 @@ def main():
 				info = get_info(flist[t][i])
 				#-- read shapefile flist[i]
 				src = fiona.open(os.path.join(indir[t],flist[t][i]),'r')
-				meta = src.meta
-				#-- update schema
-				meta['schema'] = out_schema
 				#-- counters
 				c1,c2,c3 = 0,0,0
-				#-- open output file for centerlines and errors
-				dst1 =  fiona.open(os.path.join(outdir,'centerline_%s%s.shp'%(u,flt_str)),'w', **meta)
-				dst2 = fiona.open(os.path.join(outdir,'errors_%s%s.shp'%(u,flt_str)),'w', **meta)
-				if filter == 0:
-					dst3 = fiona.open(os.path.join(outdir,'handdrawn_%s.shp'%u),'w', **meta)
 				for j in range(len(src)):
 					g = next(src)
 					#-- add filter
@@ -123,16 +129,16 @@ def main():
 							dst2.write(g)
 							c2 += 1
 						else:
-							if filter == 0:
+							if filter == hand_param:
 								g['properties']['ID'] = '%s_%i'%(info['Track'],c3)
 								#-- write center line to file
 								dst3.write(g)
 								c3 += 1
-				if filter == 0:
-					dst3.close()
-				dst2.close()
-				dst1.close()
 				src.close()
+		if filter == hand_param:
+			dst3.close()
+		dst2.close()
+		dst1.close()
 
 #-- run main program
 if __name__ == '__main__':
