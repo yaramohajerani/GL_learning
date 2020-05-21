@@ -23,33 +23,52 @@ ddir = os.path.expanduser('~/GL_learning_data/geocoded_v1')
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','FILTER=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:',long_options)
+	long_options=['DIR=','FILTER=','CLOBBER']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:C',long_options)
 
 	#-- Set default settings
 	subdir = 'atrous_32init_drop0.2_customLossR727.dir'
-	filter = 0.
+	FILTER = 0.
 	flt_str = ''
+	clobber = False
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
 			subdir = arg
 		elif opt in ("-F","--FILTER"):
 			if arg not in ['NONE','none','None','N','n',0]:
-				filter = float(arg)
-				flt_str = '_%.1fkm'%(filter/1000)
+				FILTER = float(arg)
+				flt_str = '_%.1fkm'%(FILTER/1000)
+		elif opt in ("-C","--CLOBBER"):
+			clobber = True
+			
 	
 	#-- Get list of files
 	pred_dir = os.path.join(ddir,'stitched.dir',subdir)
 	fileList = os.listdir(pred_dir)
 	pred_list = [f for f in fileList if (f.endswith('.tif') and ('mask' not in f))]
-	# pred_list = ['gl_069_181218-181224-181224-181230_014095-025166-025166-014270_T110614_T110655.tif']
-	# pred_list = ['gl_007_180518-180524-180530-180605_021954-011058-022129-011233_T050854_T050855.tif']
-	print('# of files: ', len(pred_list))
 	#-- output directory
 	output_dir = os.path.join(pred_dir,'shapefiles.dir')
 	#-- make directories if they don't exist
 	if not os.path.exists(output_dir):
 		os.mkdir(output_dir)
+
+	#-- if CLOBBBER is False, we are not overwriting old files, so remove exisiting files from list
+	if not clobber:
+		print('Removing exisitng files.')
+		existingList = os.listdir(output_dir)
+		existing = [f for f in existingList if (f.endswith('.shp') and ('ERR' not in f) and f.startswith('gl_'))]
+		rem_list = []
+		for p in pred_list:
+			if p.replace('.tif','%s.shp'%flt_str) in existing:
+				#-- save index for removing at the end
+				rem_list.append(p)
+		for p in rem_list:
+			print('Ignoring %s.'%p)
+			pred_list.remove(p)
+
+	# pred_list = ['gl_069_181218-181224-181224-181230_014095-025166-025166-014270_T110614_T110655.tif']
+	# pred_list = ['gl_007_180518-180524-180530-180605_021954-011058-022129-011233_T050854_T050855.tif']
+	print('# of files: ', len(pred_list))
 
 	#-- threshold for getting contours and centerlines
 	eps = 0.3
@@ -131,13 +150,11 @@ def main():
 		y = {}
 		tmp_noise = []
 		for idx,contour in enumerate(contours):
-			#-- don't go over noise to cut uncessary iterations
-			if idx not in noise:
-				#-- convert to coordinates
-				x[idx],y[idx] = rasterio.transform.xy(trans, contour[:,0], contour[:,1])
-				#-- apply filter
-				if (len(x[idx]) < 2 or LineString(zip(x[idx],y[idx])).length <= filter):
-					tmp_noise.append(idx)
+			#-- convert to coordinates
+			x[idx],y[idx] = rasterio.transform.xy(trans, contour[:,0], contour[:,1])
+			#-- apply filter
+			if (len(x[idx]) < 2 or LineString(zip(x[idx],y[idx])).length <= FILTER):
+				tmp_noise.append(idx)
 
 		#-- combine and remove repeating elements
 		noise = list(set(noise+tmp_noise))
