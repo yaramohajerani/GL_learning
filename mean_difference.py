@@ -53,7 +53,7 @@ def main():
 	pred_dir = os.path.join(ddir,'stitched.dir',subdir,'shapefiles.dir')
 	fileList = os.listdir(pred_dir)
 	pred_list = [f for f in fileList if (f.endswith('%s.shp'%flt_str) and (f.startswith('gl_')))]
-
+	# pred_list = ['gl_007_180816-180822-180822-180828_012283-023354-023354-012458_T050839_T050924_6.0km.shp']
 	#-- also get list of handdrawn lines
 	lbl_dir = os.path.join(gdrive,'SOURCE_SHP')
 	fileList = os.listdir(lbl_dir)
@@ -82,8 +82,6 @@ def main():
 					ml_lines.append(LineString(g['geometry']['coordinates']))
 		fid1.close()
 
-		#-- find corresponding label file
-		f_ind = lbl_list.index(f.replace('%s.shp'%flt_str,'.shp'))
 		#-- read label file
 		fid2 = fiona.open(os.path.join(lbl_dir,f.replace('%s.shp'%flt_str,'.shp')),'r')
 		#-- loop over the hand-written lines and save all coordinates
@@ -94,12 +92,12 @@ def main():
 				hd_lines.append(LineString(g2['geometry']['coordinates']))
 		fid2.close()
 
-		#-- initialize array of all pairwise distances
+		#-- initialize array of all pairwise distances and used indices
 		dist = []
 		#-- Now loop over each test line and find intersecting handdrawn lines
 		for l1 in ml_lines:
 			for l2 in hd_lines:
-				if l1.intersects(l2) or l1.touches(l2):
+				if l1.intersects(l2): #or l1.touches(l2):
 					#-- lines intersect. Now Find the shorter line to use as reference
 					if l1.length <= l2.length:
 						#-- use ML line as reference
@@ -110,11 +108,55 @@ def main():
 						x1,y1 = l2.coords.xy
 						x2,y2 = l1.coords.xy
 					#-- go along x1,y1 and find closest points on x2,y2
+					d = np.empty((len(x1),len(x2)),dtype=float)
+					ind_list = np.empty(len(x1),dtype=int)
 					for i in range(len(x1)):
 						#-- get list of distances
-						d = np.sqrt((np.array(x2)-x1[i])**2 + (np.array(y2)-y1[i])**2)
-						#-- save shortest distances
-						dist.append(np.min(d))
+						d[i,:] = np.sqrt((np.array(x2)-x1[i])**2 + (np.array(y2)-y1[i])**2)
+						#-- get index of shortest distanace
+						ind_list[i] = np.argmin(d[i,:])
+					#-- Now check check if multiple points of the reference line point to the same
+					#-- (x2,y2) point
+					#-- first get list of unique indices
+					unique_list = list(set(ind_list))
+					#-- sort in ascending order
+					unique_list.sort()
+
+					#-- get how many times each unique index is repeated
+					u_count = np.zeros(len(unique_list),dtype=int)
+					#-- loop through unique indices and find all corresponding indices
+					for k,u in enumerate(unique_list):
+						u_count[k] = np.count_nonzero(ind_list == u)
+
+					#-- for repeating indices that are side-by-side (for example many 4s and many 5s),
+					#-- the line is out of bounds of the other line, and the far-away points are 
+					#-- alternating between a few points on the refernec line. Make them all the same index
+					remove_list = []
+					for k in range(len(unique_list)):
+						if u_count[k] > 1:
+							#-- compare with element after
+							if (unique_list[k]+1 in unique_list):
+								ii, = np.nonzero(ind_list == unique_list[k])
+								jj, = np.nonzero(ind_list == unique_list[k]+1)
+								if np.min(d[ii,unique_list[k]]) < np.min(d[jj,unique_list[k]]):
+									remove_list.append(unique_list[k]+1)
+								else:
+									remove_list.append(unique_list[k])
+					#-- remove duplicate elements
+					remove_list = list(set(remove_list))
+					for r in remove_list:
+						unique_list.remove(r)
+
+					#-- loop through unique indices and find all corresponding indices
+					for u in unique_list:
+						ii, = np.nonzero(ind_list == u)
+						if len(ii) == 1:
+							dist.append(np.min(d[ii,:]))
+						else:
+							#-- if more than one element exists, find the one
+							#-- with the shortest distance
+							shortest = np.argmin(d[ii,u])
+							dist.append(np.min(d[ii[shortest],:]))
 		distances[count] = np.mean(dist)
 		if len(dist) != 0:
 			minims[count] = np.min(dist)
@@ -129,7 +171,7 @@ def main():
 	outtxt.write('%.1f \tMIN\n'%(np.nanmin(minims)))
 	outtxt.write('%.1f \tMAX\n'%(np.nanmax(maxims)))
 	outtxt.close()
-
+	
 #-- run main program
 if __name__ == '__main__':
 	main()
