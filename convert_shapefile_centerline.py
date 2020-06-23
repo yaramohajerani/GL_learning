@@ -6,10 +6,6 @@ Yara Mohajerani (Last update 06/2020)
 Read output predictions and convert to shapefile lines
 This script uses the centerline module 
 """
-##
-# TODO
-# if a centerline has too many line segments after removing pinning poitns, just ignore
-##
 import os
 import sys
 import rasterio
@@ -164,17 +160,16 @@ def main():
 
 		#-- initialize list of contour linestrings
 		er = [None]*len(contours)
-		cn = [None]*(len(contours)-len(ignore_list)-len(noise))
+		cn = [] #[None]*(len(contours)-len(ignore_list)-len(noise))
 		n = 0  # total center line counter
 		pc = 1 # pinning point counter
 		lc = 1 # line counter
 		er_type = [None]*len(er)
-		cn_type = [None]*len(cn)
+		cn_type = [] #[None]*len(cn)
 		er_class = [None]*len(er)
-		cn_class = [None]*len(cn)
+		cn_class = [] #[None]*len(cn)
 		er_lbl = [None]*len(er)
-		cn_lbl = [None]*len(cn)
-		print(len(cn_class))
+		cn_lbl = [] #[None]*len(cn)
 		#-- loop through polygons, get centerlines, and save
 		for idx,p in enumerate(pols):
 			er[idx] = [list(a) for a in zip(x[idx],y[idx])]
@@ -189,11 +184,11 @@ def main():
 				if idx in pin_list:
 					#-- pinning point. Just get perimeter of polygon
 					xc,yc = pols[idx].exterior.coords.xy
-					cn[n] = [[list(a) for a in zip(xc,yc)]]
-					cn_class[n] = ['Pinning Point']
-					cn_type[n] = [pol_type[idx]]
+					cn.append([[list(a) for a in zip(xc,yc)]])
+					cn_class.append(['Pinning Point'])
+					cn_type.append([pol_type[idx]])
 					#-- set label
-					cn_lbl[n] = ['pin%i'%pc]
+					cn_lbl.append(['pin%i'%pc])
 					pc += 1 #- incremenet pinning point counter
 				else:
 					#-- get centerlines
@@ -206,11 +201,8 @@ def main():
 						print('not enough ridges. Skip')
 						continue
 					else:
-						print('idx %i, n%i, contour.'%(idx,n))
-						# cn_class[n] = 'Grounding Line'
-						er_class[idx] = 'GL Uncertainty'
-
-						print(dis,len(cl))
+						# print('idx %i, n%i, contour.'%(idx,n))
+						# print(dis,len(cl))
 						"""
 						while cl.geom_type == 'MultiLineString':
 							try:
@@ -228,35 +220,41 @@ def main():
 						if merged_lines.geom_type == 'LineString':
 							#-- save coordinates of linestring
 							xc,yc = merged_lines.coords.xy
-							cn[n] = [[list(a) for a in zip(xc,yc)]]
-							cn_class[n] = ['Grounding Line']
-							cn_lbl[n] = ['line%i'%lc]
-							cn_type[n] = [pol_type[idx]]
+							cn.append([[list(a) for a in zip(xc,yc)]])
+							cn_class.append(['Grounding Line'])
+							cn_lbl.append(['line%i'%lc])
+							cn_type.append([pol_type[idx]])
+							er_class[idx] = 'GL Uncertainty'
+							#-- set label
+							er_lbl[idx] = 'err%i'%lc
+							lc += 1 #- incremenet line counter
 						else:
-							#-- save coordinates of all linestrings
-							cn[n] = [None]*len(merged_lines)
-							cn_lbl[n] = [None]*len(merged_lines)
-							cn_class[n] = [None]*len(merged_lines)
-							cn_type[n] = [None]*len(merged_lines)
-							for nn in range(len(cn[n])):
-								xc,yc = merged_lines[nn].coords.xy
-								cn[n][nn] = [list(a) for a in zip(xc,yc)]
-								cn_class[n][nn] = 'Grounding Line'
-								cn_lbl[n][nn] = 'line%i'%lc
-								cn_type[n][nn] = pol_type[idx]
-						"""
-						#-- get longest line and plot
-						merged_lines = linemerge(cl)
-						line_ind = np.argmax([m.length for m in merged_lines])
-						xc,yc = merged_lines[line_ind].coords.xy
-						# xc,yc = cl.coords.xy
-						cn[n] = [list(a) for a in zip(xc,yc)]
-						"""
-						#-- set label
-						er_lbl[idx] = 'err%i'%lc
-						lc += 1 #- incremenet line counter
-				#-- increment centerline counter
-				n += 1
+							nml = len(merged_lines)
+							#-- for lines with many bifurcations, the average segment is 
+							#-- about 300m, so if # of segments is length/300 or more, ignore.
+							if nml < pols[idx].length/300:
+								coord_list = []
+								for nn in range(nml):
+									xc,yc = merged_lines[nn].coords.xy
+									coord_list.append([list(a) for a in zip(xc,yc)])
+								cn.append(coord_list)
+								cn_class.append(['Grounding Line']*nml)
+								cn_lbl.append(['line%i'%lc]*nml)
+								cn_type.append([pol_type[idx]]*nml)
+								er_class[idx] = 'GL Uncertainty'
+								"""
+								#-- get longest line and plot
+								merged_lines = linemerge(cl)
+								line_ind = np.argmax([m.length for m in merged_lines])
+								xc,yc = merged_lines[line_ind].coords.xy
+								# xc,yc = cl.coords.xy
+								cn[n] = [list(a) for a in zip(xc,yc)]
+								"""
+								#-- set label
+								er_lbl[idx] = 'err%i'%lc
+								lc += 1 #- incremenet line counter
+				# #-- increment centerline counter
+				# n += 1
 		
 		#-- save all linestrings to file
 		#-- make separate files for centerlines and errors
