@@ -45,14 +45,13 @@ def main():
 	
 	#-- Get list of files
 	pred_dir = os.path.join(ddir,'stitched.dir',subdir)
-	# fileList = os.listdir(pred_dir)
-	# pred_list = [f for f in fileList if (f.endswith('.tif') and ('mask' not in f))]
+	fileList = os.listdir(pred_dir)
+	pred_list = [f for f in fileList if (f.endswith('.tif') and ('mask' not in f))]
 	#-- output directory
 	output_dir = os.path.join(pred_dir,'shapefiles.dir')
 	#-- make directories if they don't exist
 	if not os.path.exists(output_dir):
 		os.mkdir(output_dir)
-	"""
 	#-- if CLOBBBER is False, we are not overwriting old files, so remove exisiting files from list
 	if not clobber:
 		print('Removing exisitng files.')
@@ -66,8 +65,8 @@ def main():
 		for p in rem_list:
 			print('Ignoring %s.'%p)
 			pred_list.remove(p)
-	"""
-	pred_list = ['gl_069_181218-181224-181224-181230_014095-025166-025166-014270_T110614_T110655.tif']
+	
+	# pred_list = ['gl_069_181218-181224-181224-181230_014095-025166-025166-014270_T110614_T110655.tif']
 	# pred_list = ['gl_007_180518-180524-180530-180605_021954-011058-022129-011233_T050854_T050855.tif']
 	print('# of files: ', len(pred_list))
 
@@ -156,7 +155,8 @@ def main():
 					pin_list.append(n)
 
 		#-- find overlap between ignore list nad noise list
-		print('overlap: ',list(set(noise) & set(ignore_list)))
+		if len(list(set(noise) & set(ignore_list))) != 0:
+			sys.exit('Overlap not empty: ', list(set(noise) & set(ignore_list)))
 
 		#-- initialize list of contour linestrings
 		er = [None]*len(contours)
@@ -175,10 +175,8 @@ def main():
 			er[idx] = [list(a) for a in zip(x[idx],y[idx])]
 			er_type[idx] = pol_type[idx]
 			if idx in noise:
-				print('idx %i, n%i, noise.'%(idx,n))
 				er_class[idx] = 'Noise'				
 			elif idx in ignore_list:
-				print('idx %i, n%i, ignore list.'%(idx,n))
 				er_class[idx] = 'Inner Contour'
 			else:
 				if idx in pin_list:
@@ -194,27 +192,13 @@ def main():
 					#-- get centerlines
 					attributes = {"id": idx, "name": "polygon", "valid": True}
 					#-- loop over interpolation distances until we can get a single line
-					dis = pols[idx].length/100
+					dis = pols[idx].length/400	#100
 					try:
 						cl = Centerline(p,interpolation_distance=dis, **attributes)
 					except:
 						print('not enough ridges. Skip')
 						continue
 					else:
-						# print('idx %i, n%i, contour.'%(idx,n))
-						# print(dis,len(cl))
-						"""
-						while cl.geom_type == 'MultiLineString':
-							try:
-								dis *= 2
-								cl = Centerline(p,interpolation_distance=dis, **attributes)
-							except:
-								print('cant increase distance. Merge line.')
-								cl = Centerline(p,interpolation_distance=dis/2, **attributes)
-								cl = linemerge(cl)
-						"""
-						print(cl.geom_type)
-						
 						#-- merge all the lines
 						merged_lines = linemerge(cl)
 						if merged_lines.geom_type == 'LineString':
@@ -242,24 +226,14 @@ def main():
 								cn_lbl.append(['line%i'%lc]*nml)
 								cn_type.append([pol_type[idx]]*nml)
 								er_class[idx] = 'GL Uncertainty'
-								"""
-								#-- get longest line and plot
-								merged_lines = linemerge(cl)
-								line_ind = np.argmax([m.length for m in merged_lines])
-								xc,yc = merged_lines[line_ind].coords.xy
-								# xc,yc = cl.coords.xy
-								cn[n] = [list(a) for a in zip(xc,yc)]
-								"""
 								#-- set label
 								er_lbl[idx] = 'err%i'%lc
 								lc += 1 #- incremenet line counter
-				# #-- increment centerline counter
-				# n += 1
 		
 		#-- save all linestrings to file
 		#-- make separate files for centerlines and errors
 		# 1) GL file
-		gl_file = os.path.join(output_dir,f.replace('.tif','%s_TEST.shp'%flt_str))
+		gl_file = os.path.join(output_dir,f.replace('.tif','%s.shp'%flt_str))
 		w = shapefile.Writer(gl_file)
 		w.field('ID', 'C')
 		w.field('Type','C')
@@ -276,7 +250,7 @@ def main():
 		prj.close()
 
 		# 2) Err File
-		er_file = os.path.join(output_dir,f.replace('.tif','%s_TEST_ERR.shp'%flt_str))
+		er_file = os.path.join(output_dir,f.replace('.tif','%s_ERR.shp'%flt_str))
 		w = shapefile.Writer(er_file)
 		w.field('ID', 'C')
 		w.field('Type','C')
