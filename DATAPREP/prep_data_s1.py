@@ -34,14 +34,6 @@ if __name__=='__main__':
     flag_overwrite_rasterized_shp=True
     dn_burn=255
 
-    
-    path_project=''
-    path_coco_prefix=''
-
-    path_shp='{}/SHP'.format(path_project)
-    path_rasterized_out='{}/SHP_RASTERIZED'.format(path_project)
-    path_tile_with_null='{}/TILED_WITH_NULL'.format(path_project)
-    path_tile_without_null='{}/TILED_WITHOUT_NULL'.format(path_project)
 
     if len(sys.argv)==1:
         #Print out the usage when there is no input parameters
@@ -80,9 +72,15 @@ if __name__=='__main__':
         
         #check if the input argument makes sense
         if path_project=='' or path_coco_prefix=='':
-            print('ERROR: Either ptoject path or coco prefix was not provided. These are mandatory.')
+            print('ERROR: Either project path or coco prefix was not provided. These are mandatory.')
             exit(1)
         else:
+            path_project=''
+            path_coco_prefix=''
+            path_shp='{}/SHP'.format(path_project)
+            path_rasterized_out='{}/SHP_RASTERIZED'.format(path_project)
+            path_tile_with_null='{}/TILED_WITH_NULL'.format(path_project)
+            path_tile_without_null='{}/TILED_WITHOUT_NULL'.format(path_project)
             #print out the parameters
             print('               Project path:',path_project)
             print('             Shapefile path:',path_shp)

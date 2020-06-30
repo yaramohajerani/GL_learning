@@ -13,12 +13,18 @@ import sys
 
 if __name__=='__main__':
     str_usage='''
-    prep_data_s1.py -p /Users/seongsu/Desktop/ACCESS -dir 11 -nx 512 -ny 512 -ox 0 -oy 0
-    prep_data_s1.py -p /Users/seongsu/Desktop/ACCESS -c /u/oates-r0/eric/SENTINEL1 -p /Users/seongsu/Desktop/ACCESS -dir 11 -nx 512 -ny 512 -ox 0 -oy 0
-    prep_data_s1.py -p /Users/seongsu/Desktop/ACCESS -dir 01 -nx 512 -ny 512 -ox 0 -oy 0 #tiling in inversed x direction
-    prep_data_s1.py -p /Users/seongsu/Desktop/ACCESS -dir 10 -nx 512 -ny 512 -ox 0 -oy 0 #tiling in inversed y direction
-    prep_data_s1.py -p /Users/seongsu/Desktop/ACCESS -dir 11 -nx 512 -ny 512 -ox 256 -oy 256 #staggered tile
-    prep_data_s1.py -p /Users/seongsu/Desktop/ACCESS -l list_Track010_unused.txt -dir 11 -nx 512 -ny 512 -ox 256 -oy 256 #unused DInSAR list provided
+    prep_data_s1_unusedDInSAR.py -p /Users/seongsu/Desktop/ACCESS -dir 11 -nx 512 -ny 512 -ox 0 -oy 0
+    prep_data_s1_unusedDInSAR.py -p /Users/seongsu/Desktop/ACCESS -c /u/oates-r0/eric/SENTINEL1 -dir 11 -nx 512 -ny 512 -ox 0 -oy 0
+    prep_data_s1_unusedDInSAR.py -p /Users/seongsu/Desktop/ACCESS -dir 01 -nx 512 -ny 512 -ox 0 -oy 0 #tiling in inversed x direction
+    prep_data_s1_unusedDInSAR.py -p /Users/seongsu/Desktop/ACCESS -dir 10 -nx 512 -ny 512 -ox 0 -oy 0 #tiling in inversed y direction
+    prep_data_s1_unusedDInSAR.py -p /Users/seongsu/Desktop/ACCESS -dir 11 -nx 512 -ny 512 -ox 256 -oy 256 #staggered tile
+    prep_data_s1_unusedDInSAR.py -p /Users/seongsu/Desktop/ACCESS -l list_Track010_unused.txt -dir 11 -nx 512 -ny 512 -ox 256 -oy 256 #unused DInSAR list provided
+
+    Parameter description:Parameter description:
+        -p : Project directory, in which the subdirectory 'SHP' is located (with the shape file in it)
+        -c : Parent directory of coco data to find
+        -dir: Tiling direction
+        -ox, oy: Offset in x and y coordinates for staggered tiling
     '''
 
     #default setting
@@ -34,25 +40,7 @@ if __name__=='__main__':
     dn_burn=255
     filename_list_unused=None
     
-    if os.uname().sysname=='Darwin': #mac
-        path_project='/Users/seongsu/Desktop/ACCESS'
-        path_shp='{}/SHP'.format(path_project)
-        path_rasterized_out='{}/SHP_RASTERIZED'.format(path_project)
-        path_coco_prefix='/Users/seongsu/u/oates-r0/eric/SENTINEL1'
-        path_tile_with_null='{}/TILED_WITH_NULL'.format(path_project)
-        path_tile_without_null='{}/TILED_WITHOUT_NULL'.format(path_project)
-
-    elif os.uname().sysname=='Linux': #in-house linux server
-        #TODO: Change accordingly
-        #path_project='/u/pennell-z1/eric/SEONGSU_SCRATCH/ACCESS'
-        path_project='/u/pennell-z1/eric/SEONGSU_SCRATCH/ACCESS_PSK'
-        path_shp='{}/SHP'.format(path_project)
-        path_rasterized_out='{}/SHP_RASTERIZED'.format(path_project)
-        path_coco_prefix='/u/oates-r0/eric/SENTINEL1'
-        path_tile_with_null='{}/TILED_WITH_NULL'.format(path_project)
-        path_tile_without_null='{}/TILED_WITHOUT_NULL'.format(path_project)
     
-
     if len(sys.argv)==1:
         print(str_usage)
 
@@ -89,12 +77,25 @@ if __name__=='__main__':
             elif sys.argv[idoi]=='-oy':
                 offset_y=int(sys.argv[idoi+1])
                 idoi+=2
+
+        if path_project=='' or path_coco_prefix=='':
+            print('ERROR: Either project path or coco prefix was not provided. These are mandatory parameters.')
+            exit(1)
+
+        else:
+            path_project=''
+            path_coco_prefix=''
+            path_shp='{}/SHP'.format(path_project)
+            path_rasterized_out='{}/SHP_RASTERIZED'.format(path_project)
+            path_tile_with_null='{}/TILED_WITH_NULL'.format(path_project)
+            path_tile_without_null='{}/TILED_WITHOUT_NULL'.format(path_project)
             
-        #print out the parameters
-        print('               Project path:',path_project)
-        print('             Shapefile path:',path_shp)
-        print(' Output tile path (w/ null):',path_tile_with_null)
-        print('Output tile path (w/o null):',path_tile_without_null)
+                    
+            #print out the parameters
+            print('               Project path:',path_project)
+            print('             Shapefile path:',path_shp)
+            print(' Output tile path (w/ null):',path_tile_with_null)
+            print('Output tile path (w/o null):',path_tile_without_null)
 
         #Create the output path if not exist
         if not os.path.exists(path_rasterized_out):

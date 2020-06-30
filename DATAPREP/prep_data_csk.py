@@ -7,14 +7,10 @@ import os
 import grup
 import numpy as np
 import subprocess
-
+import sys
 
 
 def integrity_check(filename_shp,path_dinsar):
-    #filename_shp_original='/Users/seongsu/Desktop/ACCESS/CSK/Pope-smith-Kohler_typo_fixed_20200523/CSK_GL_POPE_SMITH_KOHLER.shp'
-    #path_dinsar='/Users/seongsu/Desktop/ACCESS/CSK/DInSAR'
-    #path_delineation_individual='/Users/seongsu/Desktop/ACCESS/CSK/SHP_INDIVIDUAL'
-    #DInSAR data examples:
     #
     # coco20160208_20160209-20160311_20160312.flat.topo_off.psfilt.coh.tiff - Corerence
     # coco20160208_20160209-20160311_20160312.flat.topo_off.psfilt.geo.tiff - Phase
@@ -91,10 +87,11 @@ def integrity_check(filename_shp,path_dinsar):
     return dict_id_flag
     #parse the 
 
-def rasterize_delineation(filename_shp='/Users/seongsu/Desktop/ACCESS/CSK/Pope-smith-Kohler_typo_fixed_20200523/CSK_GL_POPE_SMITH_KOHLER.shp',
-                          id_dinsar='20160313_20160314-20160601_20160602',
-                          path_dinsar='/Users/seongsu/Desktop/ACCESS/CSK/DInSAR',
-                          path_rasterized='/Users/seongsu/Desktop/ACCESS/CSK/SHP_INDV'):
+def rasterize_delineation(filename_shp,
+                          id_dinsar,
+                          path_dinsar,
+                          path_rasterized,
+                          epsg_in=3031):
     #NOTE the default values above are for test purpose only. Get rid of them when done with the testing.
     form_command_rasterize='gdal_rasterize -burn {BURN} -ot Byte -tr {RX} {RY} -te {XMIN} {YMIN} {XMAX} {YMAX} -co compress=LZW {SHP_IN} {TIFF_OUT}'
     if not os.path.exists(path_rasterized):
@@ -107,8 +104,8 @@ def rasterize_delineation(filename_shp='/Users/seongsu/Desktop/ACCESS/CSK/Pope-s
 
     #prepare for the output shp
     srs_out=osr.SpatialReference()
-    srs_out.ImportFromEPSG(3031) #Antarctica
-    #srs_out.ImportFromEPSG(3413) #Greenland
+    srs_out.ImportFromEPSG(epsg_in) #Antarctica
+    
     filename_shp_out='{}/gl_{}.shp'.format(path_rasterized,id_dinsar)
     drv_shp_out=ogr.GetDriverByName('ESRI Shapefile')
     shp_out=drv_shp_out.CreateDataSource(filename_shp_out)
@@ -139,8 +136,6 @@ def rasterize_delineation(filename_shp='/Users/seongsu/Desktop/ACCESS/CSK/Pope-s
             feat_out=ogr.Feature(lyr_out.GetLayerDefn())
             feat_out.SetField('MASTER1',str(m1))
             feat_out.SetField('MASTER2',str(m2))
-            #line_out=ogr.CreateGeometryFromWkt(gin.ExportToWkt())
-            #feat_out.SetGeometry(line_out)
             feat_out.SetGeometry(gin)
             lyr_out.CreateFeature(feat_out)
             feat_out=None
@@ -154,7 +149,6 @@ def rasterize_delineation(filename_shp='/Users/seongsu/Desktop/ACCESS/CSK/Pope-s
         #coco20160208_20160209-20160311_20160312.flat.topo_off.psfilt.geo.tiff
         geo_in=gdal.Open(filename_corresponding_geo)
         gtf=geo_in.GetGeoTransform()
-
 
         command_rasterize=form_command_rasterize.format(BURN=dn_burn,
                                                         RX=gtf[1],#dem_gc_par.xposting,
@@ -171,8 +165,10 @@ def rasterize_delineation(filename_shp='/Users/seongsu/Desktop/ACCESS/CSK/Pope-s
 
 def get_complete_coco(path_dinsar='/Users/seongsu/Desktop/ACCESS/CSK/DInSAR',
                       id_dinsar='20160313_20160314-20160601_20160602'):
-    #coco20160208_20160209-20160311_20160312.flat.topo_off.psfilt.coh.tiff
-    #coco20160208_20160209-20160311_20160312.flat.topo_off.psfilt.geo.tiff
+    
+    #coco file example for CSK
+    #coco20160208_20160209-20160311_20160312.flat.topo_off.psfilt.coh.tiff #coherence
+    #coco20160208_20160209-20160311_20160312.flat.topo_off.psfilt.geo.tiff #phase [-pi, pi]
 
     filename_geo='{}/coco{}.flat.topo_off.psfilt.geo.tiff'.format(path_dinsar,id_dinsar)
     filename_coh='{}/coco{}.flat.topo_off.psfilt.coh.tiff'.format(path_dinsar,id_dinsar)
@@ -279,18 +275,57 @@ def chop_img(coco_in,delineation_in,path_tile,tilename_prefix,
 
 
 if __name__=='__main__':
-    
-    filenane_shp_src='/Users/seongsu/Desktop/ACCESS/CSK/Pope-smith-Kohler_typo_fixed_20200523/CSK_GL_POPE_SMITH_KOHLER.shp'
+
+    str_usage='''
+    prep_data_csk.py -p /Users/username/ACCESS/PSK -s /Users/username/ACCESS/PSK/SHP/shapefile.shp -d /Users/username/ACCESS/PSK/DInSAR
+    prep_data_csk.py -e 3031 -p /Users/username/ACCESS/PSK -s /Users/username/ACCESS/PSK/SHP/shapefile.shp -d /Users/username/ACCESS/PSK/DInSAR #define projection by EPSG
+
+    -e: EPSG for projection definition.
+    -p: Project directory
+    -s: Shapefile name
+    -d: DInSAR directory
+    '''
+
+    #default parameters
+    path_project=''
+    filename_shp_src='/Users/seongsu/Desktop/ACCESS/CSK/Pope-smith-Kohler_typo_fixed_20200523/CSK_GL_POPE_SMITH_KOHLER.shp'
     path_dinsar='/Users/seongsu/Desktop/ACCESS/CSK/DInSAR'
     path_tile='/Users/seongsu/Desktop/ACCESS/CSK/TILE'
     path_rasterized='/Users/seongsu/Desktop/ACCESS/CSK/SHP_INDV'
     
-    dict_integrity=integrity_check(filenane_shp_src,path_dinsar)
+
+    #parse the input parameters
+    noi=1
+    while noi<len(sys.argv):
+        if sys.argv[noi]=='-e':
+            EPSG_ARG=int(sys.argv[noi+1])
+            noi+=2
+        elif sys.argv[noi]=='-p':
+            path_project=sys.argv[noi+1]
+            path_tile='{}/TILE'.format(path_project)
+            path_rasterized='{}/SHP_indv'.format(path_project)
+            noi+=2
+        elif sys.argv[noi]=='-s':
+            filename_shp_src=sys.argv[noi+1]
+            noi+=2
+        elif sys.argv[noi]=='-d':
+            path_dinsar=sys.argv[noi+1]
+            noi+=2
+        else:
+            print('ERROR: Cannot understand the parameter option:',sys.argv[noi])
+            exit(1)
+
+    print('Project path:                {}'.format(path_project))
+    print('Source shapefile name:       {}'.format(filename_shp_src))
+    print('Output tile path:            {}'.format(path_tile))
+    print('Rasterized delineation path: {}'.format(path_rasterized))
+
+    #check the data integrity
+    dict_integrity=integrity_check(filename_shp_src,path_dinsar)
 
     for id_dinsar in dict_integrity:
-        if dict_integrity[id_dinsar]:
-            #good to preprocess
-            filename_rasterized=rasterize_delineation(filenane_shp_src,id_dinsar,path_dinsar,path_rasterized)
+        if dict_integrity[id_dinsar]: #Set of delineaitons which passed the integrity check. Good to preprocess
+            filename_rasterized=rasterize_delineation(filename_shp_src,id_dinsar,path_dinsar,path_rasterized,epsg_in=EPSG_ARG)
             coco_in=get_complete_coco(path_dinsar,id_dinsar)
             delineation_in=grup.raster(filename_rasterized)
             delineation_in.isArea=False
