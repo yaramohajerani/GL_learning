@@ -1,6 +1,6 @@
 #!/anaconda2/bin/python2.7
 u"""
-frontlearn_unet.py
+nn_model.py
 by Yara Mohajerani (Last Update 03/2020)
 
 Construct a dynamic u-net model with a variable
@@ -28,9 +28,61 @@ import os
 import imp
 
 #-----------------------------------------------------------------------------------
+#-- model with no pooling or upsampling
+#-----------------------------------------------------------------------------------
+def nn_model_atrous_noPool(height=0,width=0,channels=1,n_filts=32,drop=0):
+	#-- inner function for convolutional units
+	def conv_unit(x,nn):
+		#-- convolution layer
+		c = kl.Conv2D(nn,3,activation='elu',padding='same')(x)
+		if drop != 0:
+			c = kl.Dropout(drop)(c)
+		c = kl.Conv2D(nn,3,activation='elu',padding='same')(c)
+		return(c)
+
+	#-- define input
+	inputs = kl.Input((height,width,channels))
+
+	#-- call depthwise separable conv unit
+	c1 = conv_unit(inputs,n_filts)
+	
+	#-- convolutional block
+	c2 = conv_unit(c1,n_filts*2)
+
+	#-- perform 3 parrallel atrous convolutions
+	a = {}
+	for i in [1,3,5]:
+		a[i] = kl.Conv2D(n_filts*2,3,activation='elu',\
+			dilation_rate=i,padding='same')(c2)
+	
+	#-- concatanate dilated convs
+	c3 = kl.Concatenate(axis=3)([a[i] for i in a.keys()])
+	
+	#-- convolution
+	c4 = kl.Conv2D(n_filts*2,3,activation='elu',padding='same')(c3)
+
+	#-- concatenate with c2
+	c5 = kl.Concatenate(axis=3)([c4,c2])
+
+	#-- convlutional block
+	c6 = conv_unit(c5,n_filts)
+
+	#-- do one final sigmoid convolution into just 1 final channel (None,h,w,1)
+	c7 = kl.Conv2D(1,1,activation='sigmoid')(c6)
+	#-- reshape into a flattened output to match sample weights
+	c8 = kl.Reshape((height*width,1,))(c7)
+
+	#-- make model
+	model = km.Model(inputs=inputs,outputs=c8)
+
+	#-- return model
+	return model
+
+
+#-----------------------------------------------------------------------------------
 #-- double the size of each convolution layer 
 #-----------------------------------------------------------------------------------
-def unet_model_atrous_double_dropout(height=0,width=0,channels=1,n_filts=32,drop=0):
+def nn_model_atrous_double_dropout(height=0,width=0,channels=1,n_filts=32,drop=0):
 	#-- inner function for convolutional units
 	def conv_unit(x,nn):
 		#-- convolution layer
