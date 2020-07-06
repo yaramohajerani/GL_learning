@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 u"""
-convert_shapefile_centerline.py
-Yara Mohajerani (Last update 06/2020)
+convert_shapefile_thinning.py
+Yara Mohajerani (Last update 07/2020)
 
 Read output predictions and convert to shapefile lines
-This script uses the centerline module 
+This script uses the scikit-image thinning module
 """
 import os
 import sys
@@ -15,8 +15,9 @@ import getopt
 import shapefile
 import scipy.ndimage as ndimage
 from shapely.geometry import Polygon,LineString,Point
-from centerline.geometry import Centerline
 from shapely.ops import linemerge
+from label_centerlines import get_centerline
+
 
 #-- directory setup
 ddir = os.path.expanduser('~/GL_learning_data/geocoded_v1')
@@ -65,7 +66,6 @@ def main():
 		for p in rem_list:
 			print('Ignoring %s.'%p)
 			pred_list.remove(p)
-	
 	# pred_list = ['gl_069_181218-181224-181224-181230_014095-025166-025166-014270_T110614_T110655.tif']
 	# pred_list = ['gl_007_180518-180524-180530-180605_021954-011058-022129-011233_T050854_T050855.tif']
 	print('# of files: ', len(pred_list))
@@ -141,16 +141,7 @@ def main():
 			box_ll[n] = pols[n].length
 			box_ww[n] = pols[n].area/box_ll[n]
 			if (n not in noise) and (n not in ignore_list):
-				#-- make bounding box
-				# box = pols[n].minimum_rotated_rectangle
-				# bx,by = box.exterior.coords.xy
-				# #-- get the dimensions of the sides of the box
-				# edge_length = (Point(bx[0],by[0]).distance(Point(bx[1],by[1])), Point(bx[1],by[1]).distance(Point(bx[2],by[2])))
-				#-- length is the larger dimension
-				# box_ll = max(edge_length)
-				# #-- width is the smaller dimension
-				# box_ww = min(edge_length)
-				#-- if the with is larger than 1/4 of the length, it's a pinning point
+				#-- if the with is larger than 1/25 of the length, it's a pinning point
 				if box_ww[n] > box_ll[n]/25:
 					pin_list.append(n)
 
@@ -182,54 +173,26 @@ def main():
 				if idx in pin_list:
 					#-- pinning point. Just get perimeter of polygon
 					xc,yc = pols[idx].exterior.coords.xy
-					cn.append([[list(a) for a in zip(xc,yc)]])
-					cn_class.append(['Pinning Point'])
-					cn_type.append([pol_type[idx]])
+					cn.append([list(a) for a in zip(xc,yc)])
+					cn_class.append('Pinning Point')
+					cn_type.append(pol_type[idx])
 					#-- set label
-					cn_lbl.append(['pin%i'%pc])
+					cn_lbl.append('pin%i'%pc)
 					pc += 1 #- incremenet pinning point counter
 				else:
-					#-- get centerlines
-					attributes = {"id": idx, "name": "polygon", "valid": True}
-					#-- loop over interpolation distances until we can get a single line
-					dis = pols[idx].length/400	#100
-					try:
-						cl = Centerline(p,interpolation_distance=dis, **attributes)
-					except:
-						print('not enough ridges. Skip')
-						continue
-					else:
-						#-- merge all the lines
-						merged_lines = linemerge(cl)
-						if merged_lines.geom_type == 'LineString':
-							#-- save coordinates of linestring
-							xc,yc = merged_lines.coords.xy
-							cn.append([[list(a) for a in zip(xc,yc)]])
-							cn_class.append(['Grounding Line'])
-							cn_lbl.append(['line%i'%lc])
-							cn_type.append([pol_type[idx]])
-							er_class[idx] = 'GL Uncertainty'
-							#-- set label
-							er_lbl[idx] = 'err%i'%lc
-							lc += 1 #- incremenet line counter
-						else:
-							nml = len(merged_lines)
-							#-- for lines with many bifurcations, the average segment is 
-							#-- about 300m, so if # of segments is length/300 or more, ignore.
-							if nml < pols[idx].length/300:
-								coord_list = []
-								for nn in range(nml):
-									xc,yc = merged_lines[nn].coords.xy
-									coord_list.append([list(a) for a in zip(xc,yc)])
-								cn.append(coord_list)
-								cn_class.append(['Grounding Line']*nml)
-								cn_lbl.append(['line%i'%lc]*nml)
-								cn_type.append([pol_type[idx]]*nml)
-								er_class[idx] = 'GL Uncertainty'
-								#-- set label
-								er_lbl[idx] = 'err%i'%lc
-								lc += 1 #- incremenet line counter
-		
+					dis = pols[idx].length/100
+					merged_lines = get_centerline(p,segmentize_maxlen=dis)
+					#-- save coordinates of linestring
+					xc,yc = merged_lines.coords.xy
+					cn.append([list(a) for a in zip(xc,yc)])
+					cn_class.append('Grounding Line')
+					cn_lbl.append('line%i'%lc)
+					cn_type.append(pol_type[idx])
+					er_class[idx] = 'GL Uncertainty'
+					#-- set label
+					er_lbl[idx] = 'err%i'%lc
+					lc += 1 #- incremenet line counter
+
 		#-- save all linestrings to file
 		#-- make separate files for centerlines and errors
 		# 1) GL file
@@ -240,9 +203,8 @@ def main():
 		w.field('Class','C')
 		#-- loop over contour centerlines
 		for n in range(len(cn)):
-			for nn in range(len(cn[n])):
-				w.line([cn[n][nn]])
-				w.record(cn_lbl[n][nn], cn_type[n][nn], cn_class[n][nn])
+			w.line([cn[n]])
+			w.record(cn_lbl[n], cn_type[n], cn_class[n])
 		w.close()
 		# create the .prj file
 		prj = open(gl_file.replace('.shp','.prj'), "w")
