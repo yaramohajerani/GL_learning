@@ -41,5 +41,6 @@ for i,f in enumerate(pred_list):
 	fid.write('python /DFS-L/DATA/isabella/ymohajer/GL_learning/convert_shapefile_centerline.py --INPUT=%s --FILTER=6000\n'%\
 		(os.path.join('/DFS-L/DATA/isabella/ymohajer/GL_learning_data/geocoded_v1/stitched.dir/atrous_32init_drop0.2_customLossR727.dir',f)))
 	fid.close()
-	lfid.write('nohup sbatch %s\n'%outfile)
+	lfid.write('nohup sbatch /DFS-L/DATA/isabella/ymohajer/GL_learning_data/geocoded_v1/stitched.dir/%s/slurm.dir/%s\n'\
+		%(subdir,f.replace('.tif','.sh')))
 lfid.close()

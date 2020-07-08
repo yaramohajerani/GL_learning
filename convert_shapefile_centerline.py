@@ -9,9 +9,9 @@ import os
 import sys
 import rasterio
 import numpy as np
-import skimage
 import getopt
 import shapefile
+from skimage.measure import find_contours
 from shapely.geometry import Polygon,LineString,Point
 from label_centerlines import get_centerline
 
@@ -58,7 +58,7 @@ def main():
 	im[np.nonzero(im[:,-1] > eps),-1] = eps
 	im[0,np.nonzero(im[0,:] > eps)] = eps
 	im[-1,np.nonzero(im[-1,:] > eps)] = eps
-	contours = skimage.measure.find_contours(im, eps)
+	contours = find_contours(im, eps)
 	#-- make contours into closed polyons to find pinning points
 	#-- also apply noise filter and append to noise list
 	x = {}
