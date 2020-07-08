@@ -30,7 +30,7 @@ for i,f in enumerate(pred_list):
 	fid.write("#SBATCH -N1\n")
 	fid.write("#SBATCH -n1\n")
 	fid.write("#SBATCH --mem=6G\n")
-	fid.write("#SBATCH -t0-12:00:00\n")
+	fid.write("#SBATCH -t0-06:00:00\n")
 	fid.write("#SBATCH -p sib2.9\n")
 	fid.write("#SBATCH --job-name=gl_%i\n"%i)
 	fid.write("#SBATCH --mail-user=ymohajer@uci.edu\n")

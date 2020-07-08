@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 u"""
 convert_shapefile_thinning.py
 Yara Mohajerani (Last update 07/2020)
