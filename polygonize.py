@@ -205,8 +205,9 @@ def main():
 
 				fid.write('module load anaconda/2/5.1.0\n')
 				fid.write('source activate GDAL\n')
-				fid.write('python %s/GL_learning/run_centerline.py --INPUT=%s\n'%\
-					(out_base,os.path.join(out_base,subdir,'shapefiles.dir','%s.shp'%out_name)))
+				fid.write('python %s %s\n'%\
+					(os.path.join(out_base,'GL_learning','run_centerline.py'),\
+					os.path.join(out_base,subdir,'shapefiles.dir','%s.shp'%out_name)))
 				fid.close()
 
 				#-- add job to list 
