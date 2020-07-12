@@ -78,15 +78,6 @@ def main():
 		else:
 			pol_type[n] = 'Train'
 	
-	#-- Loop through all the polygons and taking any overlapping areas out
-	#-- of the enclosing polygon and ignore the inside polygon
-	ignore_list = []
-	for i in range(len(pols)):
-		for j in range(len(pols)):
-			if (i != j) and pols[i].contains(pols[j]):
-				# pols[i] = pols[i].difference(pols[j])
-				ignore_list.append(j)
-
 	#-- loop through and apply noise filter
 	for n in range(len(contours)):
 		#-- apply filter
@@ -98,13 +89,27 @@ def main():
 	pin_list = []
 	box_ll = [None]*len(contours)
 	box_ww = [None]*len(contours)
-	for n in range(len(contours)):
+	for n in range(len(pols)):
 		box_ll[n] = pols[n].length
 		box_ww[n] = pols[n].area/box_ll[n]
-		if (n not in noise) and (n not in ignore_list):
+		if (n not in noise):
 			#-- if the with is larger than 1/25 of the length, it's a pinning point
 			if box_ww[n] > box_ll[n]/25:
 				pin_list.append(n)
+
+	#-- Loop through all the polygons and take any overlapping areas out
+	#-- of the enclosing polygon and ignore the inside polygon
+	ignore_list = []
+	for i in range(len(pols)):
+		for j in range(len(pols)):
+			if (i != j) and pols[i].contains(pols[j]):
+				# pols[i] = pols[i].difference(pols[j])
+				if (i in pin_list) and (j in pin_list):
+					#-- if it's a pinning point, ignore outer loop
+					ignore_list.append(i)
+				else:
+					#-- if not, add inner loop to ignore list
+					ignore_list.append(j)
 
 	#-- find overlap between ignore list nad noise list
 	if len(list(set(noise) & set(ignore_list))) != 0:
@@ -112,16 +117,16 @@ def main():
 
 	#-- initialize list of contour linestrings
 	er = [None]*len(contours)
-	cn = [] #[None]*(len(contours)-len(ignore_list)-len(noise))
+	cn = []
 	n = 0  # total center line counter
 	pc = 1 # pinning point counter
 	lc = 1 # line counter
 	er_type = [None]*len(er)
-	cn_type = [] #[None]*len(cn)
+	cn_type = []
 	er_class = [None]*len(er)
-	cn_class = [] #[None]*len(cn)
+	cn_class = []
 	er_lbl = [None]*len(er)
-	cn_lbl = [] #[None]*len(cn)
+	cn_lbl = []
 	#-- loop through polygons, get centerlines, and save
 	for idx,p in enumerate(pols):
 		er[idx] = [list(a) for a in zip(x[idx],y[idx])]
@@ -129,7 +134,7 @@ def main():
 		if idx in noise:
 			er_class[idx] = 'Noise'				
 		elif idx in ignore_list:
-			er_class[idx] = 'Inner Contour'
+			er_class[idx] = 'Ignored Contour'
 		else:
 			if idx in pin_list:
 				#-- pinning point. Just get perimeter of polygon
