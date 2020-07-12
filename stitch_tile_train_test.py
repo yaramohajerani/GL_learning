@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 u"""
-stitch_tile.py
+stitch_tile_train_test.py
 
 Stitch tiles together before postprcessing.
+This script is specifically for the mixed train/test data used
+to initially train the data. For tests on other generic data
+use `stitch_tile.py`
 """
 import os
 import sys
@@ -23,40 +26,47 @@ outdir = os.path.expanduser('~/GL_learning_data/geocoded_v1')
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','KERNEL=','noFLAG']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:K:F',long_options)
+	long_options=['DIR=','NX=','NY=','KERNEL=','noFLAG']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:X:Y:K:F',long_options)
 
 	#-- Set default settings
-	ddir = '/Volumes/GoogleDrive/Shared drives/GROUNDING_LINE_TEAM_DRIVE/ML_Yara/S1_Pope-Smith-Kohler/UNUSED/pred_PSK-UNUSED_with_null/atrous_32init_drop0.2_customLossR727.dir'
+	subdir = 'atrous_32init_drop0.2_customLossR727.dir'
+	nx_tile = 512
+	ny_tile = 512
 	flag_gaussian_weight = True
 	sigma_kernel = 0.05
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
-			ddir = arg
+			subdir = arg
+		elif opt in ("-X","--NX"):
+			nx_tile = int(arg)
+		elif opt in ("-Y","--NY"):
+			ny_tile = int(arg)
 		elif opt in ("-K","--KERNEL"):
 			sigma_kernel = float(arg)
 		elif opt in ("-F","--noFLAG"):
 			flag_gaussian_weight = False
-			print('Not using Gaussian kernel.')
 
 	#-- Get list of geotiff label files
-	fileList = os.listdir(ddir)
-	pred_list = [os.path.join(ddir,f) for f in fileList if (f.endswith('.tif') and f.startswith('pred'))]
+	lbl_dir = os.path.join(gdrive,'delineationtile_withoutnull_v1')
+	fileList = os.listdir(lbl_dir)
+	lbl_list = [f for f in fileList if (f.endswith('.tif') and f.startswith('delineation'))]
 	
+	#-- Get list of prediction files
+	pred_list = {}
+	for t in ['Train','Test']:
+		pred_dir = os.path.join(gdrive_out,'%s_predictions.dir'%t,subdir)
+		fileList = os.listdir(pred_dir)
+		pred_list[t] = [os.path.join(pred_dir,f) for f in fileList \
+			if (f.endswith('.png') and f.startswith('pred'))]
+	#-- combine test and train dataset and add the whole path
+	list_tile = pred_list['Train'] + pred_list['Test']
+
 	#-- output directory
-	path_stitched = os.path.join(ddir,'stitched.dir')
+	path_stitched = os.path.join(outdir,'stitched.dir',subdir)
 	#-- make directories if they don't exist
 	if not os.path.exists(path_stitched):
 		os.mkdir(path_stitched)
-
-	#-- read first file to get dimensions
-	raster = rasterio.open(pred_list[0],'r')
-	nx_tile = raster.width
-	ny_tile = raster.height
-	#-- get transformation matrix
-	trans = raster.transform
-	out_crs = raster.crs.to_epsg()
-	raster.close()
 
 	#-- buid the kernel
 	if flag_gaussian_weight:
@@ -73,7 +83,7 @@ def main():
 	#-- make a dictionary of all tiles that belong together
 	tdict = {}
 	print('Identifying the tiles and source DInSAR names...')
-	for tilename in pred_list:
+	for tilename in list_tile:
 		name_dinsar = os.path.basename(tilename).split('pred_')[1].split('_x')[0]
 		if not name_dinsar in tdict.keys():
 			tdict[name_dinsar] = [tilename]
@@ -104,21 +114,33 @@ def main():
 		arr_mask = np.zeros((ny_out,nx_out),dtype=int)
 		#-- loop through tiles and adding to larger scene array
 		for i,tile_to_stitch in enumerate(list_tile_to_stitch):
-			raster = rasterio.open(tile_to_stitch,'r')
-			tile_in = raster.read(1).astype(float)
+			tile_in=imageio.imread(tile_to_stitch)
 
-			arr_sum[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += tile_in*kernel_weight
+			arr_sum[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += tile_in.astype(np.float)*kernel_weight
 			arr_weight[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += kernel_weight
-		
-			raster.close()
+			#-- if tile is from test data set mask to 1
+			if tile_to_stitch in pred_list['Test']:
+				arr_mask[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] = 1
 
 		#-- noramlize
 		arr_out = arr_sum/arr_weight
-
 		#-- nan values from division by 0 are set to 0 (no tile coverage)
 		arr_out[np.isnan(arr_out)] = 0.0
-		arr_out[arr_out < 0] = 0.0
-
+		#-- apply tresholding (remembering input png is 0-255)
+		# arr_out[np.nonzero(arr_out < 125)] = 0
+		# arr_out[np.nonzero(arr_out >= 125)]= 1
+		#-- normalize to 0 - 1
+		arr_out /= 255.
+		#-- Design transform for adding geocoded information
+		#-- read the geotiff corresponding to the last tile to get geocoding
+		#-- find the corresponding geotif file
+		#-- first find the index of the corresponding file
+		file_ind = lbl_list.index(os.path.basename(tile_to_stitch).replace('pred','delineation').replace('.png','.tif'))
+		raster = rasterio.open(os.path.join(gdrive,'delineationtile_withoutnull_v1',lbl_list[file_ind]),'r')
+		#-- get transformation matrix
+		trans = raster.transform
+		out_crs = raster.crs.to_epsg()
+		raster.close()
 		#-- get pixel size
 		x1,y1 = rasterio.transform.xy(trans, 0, 0)
 		x2,y2 = rasterio.transform.xy(trans, 0, 1)
@@ -136,7 +158,7 @@ def main():
 		#-- set up the dataset with compression options (1 is for band 1)
 		OPTS = ['COMPRESS=LZW']
 		ds = driver.Create(os.path.join(path_stitched,'%s.tif'%dinsar_to_stitch), \
-			int(nx_out), int(ny_out), 1, gdal.GDT_Float32, OPTS)
+			int(nx_out), int(ny_out), 1, gdal.GDT_Int16, OPTS)
 		#-- top left x, w-e pixel resolution, rotation
 		#-- top left y, rotation, n-s pixel resolution
 		ds.SetGeoTransform([x_orig, dx, 0, y_orig, 0, -dy])
@@ -152,7 +174,26 @@ def main():
 		
 		#-- also save image for reference
 		outfile = os.path.join(path_stitched,'%s.png'%dinsar_to_stitch)
-		imageio.imsave(outfile,(arr_out*255).astype(np.ubyte))
+		imageio.imsave(outfile,(arr_out/arr_out.max()*255).astype(np.ubyte))
+		
+		#-- also output mask geotiff
+		driver = gdal.GetDriverByName("GTiff")
+		#-- set up the dataset with compression options (1 is for band 1)
+		OPTS = ['COMPRESS=LZW']
+		ds2 = driver.Create(os.path.join(path_stitched,'%s_mask.tif'%dinsar_to_stitch), \
+			int(nx_out), int(ny_out), 1, gdal.GDT_Float32, OPTS)
+		#-- top left x, w-e pixel resolution, rotation
+		#-- top left y, rotation, n-s pixel resolution
+		ds2.SetGeoTransform([x_orig, dx, 0, y_orig, 0, -dy])
+		#-- set the reference info
+		srs = osr.SpatialReference()
+		srs.ImportFromEPSG(out_crs)
+		#-- export
+		ds2.SetProjection( srs.ExportToWkt() )
+		#-- write to geotiff array
+		ds2.GetRasterBand(1).WriteArray(arr_mask)
+		ds2.FlushCache()
+		ds2 = None
 		
 #-- run main program
 if __name__ == '__main__':
