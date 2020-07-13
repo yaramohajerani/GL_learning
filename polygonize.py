@@ -60,7 +60,7 @@ def main():
 
 	#-- loop through prediction files
 	#-- get contours and save each as a line in shapefile format
-	for f in pred_list:
+	for pcount,f in enumerate(pred_list):
 		#-- open job list for this file
 		sub_list_fid = open(os.path.join(slurm_dir,f.replace('.tif','.sh')),'w')
 		#-- read file
@@ -171,7 +171,7 @@ def main():
 				
 				#-- write individual polygon to file
 				out_name = f.replace('.tif','%s_ERR_%i'%(flt_str,count))
-				"""
+		
 				er_file = os.path.join(local_output_dir,'%s.shp'%out_name)
 				w = shapefile.Writer(er_file)
 				w.field('ID', 'C')
@@ -186,10 +186,10 @@ def main():
 				prj = open(er_file.replace('.shp','.prj'), "w")
 				prj.write(raster.crs.to_wkt())
 				prj.close()
-				"""
+				
 				#-- write corresponding slurm file
 				#-- calculate run time
-				run_time = int(p.length/300)+15
+				run_time = int(p.length/400)+10
 
 				outfile = os.path.join(slurm_dir,'%s.sh'%out_name)
 				fid = open(outfile,'w')
@@ -199,7 +199,7 @@ def main():
 				fid.write("#SBATCH --mem=10G\n")
 				fid.write("#SBATCH -t %i\n"%run_time)
 				fid.write("#SBATCH -p sib2.9\n")
-				fid.write("#SBATCH --job-name=gl_%i_%i\n"%(idx,count))
+				fid.write("#SBATCH --job-name=gl_%i_%i_%i\n"%(pcount,idx,count))
 				fid.write("#SBATCH --mail-user=ymohajer@uci.edu\n")
 				fid.write("#SBATCH --mail-type=FAIL\n\n")
 
@@ -219,7 +219,7 @@ def main():
 		#-- add sub list fid to total job list
 		list_fid.write('sh %s\n'%os.path.join(out_base,subdir,'slurm.dir',f.replace('.tif','.sh')))
 
-		"""
+		
 		#-- save all contours to file
 		er_file = os.path.join(local_output_dir,f.replace('.tif','%s_ERR.shp'%flt_str))
 		w = shapefile.Writer(er_file)
@@ -237,12 +237,13 @@ def main():
 		prj = open(er_file.replace('.shp','.prj'), "w")
 		prj.write(raster.crs.to_wkt())
 		prj.close()
-		"""
+		
 		#-- close input file
 		raster.close()
 
 	#-- close master list fid	
 	list_fid.close()
+	
 #-- run main program
 if __name__ == '__main__':
 	main()
