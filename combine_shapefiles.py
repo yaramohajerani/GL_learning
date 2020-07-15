@@ -52,14 +52,20 @@ def main():
 		filename = sc.replace('ERR.shp','')
 		#-- get all files in center list that start with `filename`
 		sub_list = [f for f in center_list if f.startswith(filename)]
-		#-- now combine each of the centerlines and combine
-		gdf = []
-		for ll in sub_list:
-			gdf.append(gpd.read_file(os.path.join(indir,ll)))
-		#-- concatenate dataframes
-		combined = gpd.GeoDataFrame(pd.concat(gdf))
-		#-- save to file
-		combined.to_file(os.path.join(indir,filename[:-1]+'.shp'),driver='ESRI Shapefile',crs_wkt=crs_wkt)
+		if sub_list == []:
+			print('sub list empty: ',sc)
+		else:
+			#-- now combine each of the centerlines and combine
+			gdf = []
+			for ll in sub_list:
+				g2 = gpd.read_file(os.path.join(indir,ll))
+				for iID in range(len(g2['ID'])):
+					g2['ID'][iID] = g2['ID'][iID].replace('err','')
+				gdf.append(g2)
+			#-- concatenate dataframes
+			combined = gpd.GeoDataFrame(pd.concat(gdf))
+			#-- save to file
+			combined.to_file(os.path.join(indir,filename[:-1]+'.shp'),driver='ESRI Shapefile',crs_wkt=crs_wkt)
 
 #-- run main program
 if __name__ == '__main__':
