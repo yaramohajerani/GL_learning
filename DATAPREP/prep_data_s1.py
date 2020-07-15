@@ -51,7 +51,7 @@ if __name__=='__main__':
                 path_tile_without_null='{}/TILED_WITHOUT_NULL'.format(path_project)
                 idoi+=2
             elif sys.argv[idoi]=='-c':
-                path_coco_prefix=path_project=sys.argv[idoi+1]
+                path_coco_prefix=sys.argv[idoi+1]
                 idoi+=2
             elif sys.argv[idoi]=='-dir':
                 dirx=bool(int(sys.argv[idoi+1][0]))
@@ -75,8 +75,8 @@ if __name__=='__main__':
             print('ERROR: Either project path or coco prefix was not provided. These are mandatory.')
             exit(1)
         else:
-            path_project=''
-            path_coco_prefix=''
+            #path_project=''
+            #path_coco_prefix=''
             path_shp='{}/SHP'.format(path_project)
             path_rasterized_out='{}/SHP_RASTERIZED'.format(path_project)
             path_tile_with_null='{}/TILED_WITH_NULL'.format(path_project)
