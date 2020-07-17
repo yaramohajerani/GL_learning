@@ -13,21 +13,21 @@ import shapefile
 from skimage.measure import find_contours
 from shapely.geometry import Polygon,LineString,Point
 
-in_base = os.path.expanduser('~')
 
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','FILTER=','OUT_BASE=','noMASK']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:O:M',long_options)
+	long_options=['DIR=','FILTER=','OUT_BASE=','IN_BASE=','noMASK']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:O:I:M',long_options)
 
 	#-- Set default settings
 	subdir = os.path.join('GL_learning_data','geocoded_v1'\
 		,'stitched.dir','atrous_32init_drop0.2_customLossR727.dir')
 	FILTER = 0.
 	flt_str = ''
-	out_base = '/DFS-L/DATA/isabella/ymohajer/'
+	out_base = '/DFS-L/DATA/isabella/ymohajer/GL_learning_data'
 	make_mask = True
+	in_base = os.path.expanduser('~')
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
 			subdir = arg
@@ -37,9 +37,14 @@ def main():
 				flt_str = '_%.1fkm'%(FILTER/1000)
 		elif opt in ("O","--OUT_BASE"):
 			out_base = os.path.expanduser(arg)
+		elif opt in ("I","--IN_BASE"):
+			in_base = os.path.expanduser(arg)
 		elif opt in ("M","--noMASK"):
 			make_mask = False
-	
+		
+	#-- make sure out directory doesn't end with '\' so we can get parent directory
+	if out_base.endswith('/'):
+		out_base = out_base[:-1]
 	indir = os.path.join(in_base,subdir)
 
 	#-- Get list of files
@@ -178,7 +183,7 @@ def main():
 				
 				#-- write individual polygon to file
 				out_name = f.replace('.tif','%s_ERR_%i'%(flt_str,count))
-		
+				
 				er_file = os.path.join(local_output_dir,'%s.shp'%out_name)
 				w = shapefile.Writer(er_file)
 				w.field('ID', 'C')
@@ -212,7 +217,7 @@ def main():
 
 				fid.write('source ~/miniconda3/bin/activate gl_env\n')
 				fid.write('python %s %s\n'%\
-					(os.path.join(out_base,'GL_learning','run_centerline.py'),\
+					(os.path.join(os.path.dirname(out_base),'GL_learning','run_centerline.py'),\
 					os.path.join(out_base,subdir,'shapefiles.dir','%s.shp'%out_name)))
 				fid.close()
 
