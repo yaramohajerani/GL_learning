@@ -18,8 +18,8 @@ in_base = os.path.expanduser('~')
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','FILTER=','OUT_BASE=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:O:',long_options)
+	long_options=['DIR=','FILTER=','OUT_BASE=','noMASK']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:O:M',long_options)
 
 	#-- Set default settings
 	subdir = os.path.join('GL_learning_data','geocoded_v1'\
@@ -27,6 +27,7 @@ def main():
 	FILTER = 0.
 	flt_str = ''
 	out_base = '/DFS-L/DATA/isabella/ymohajer/'
+	make_mask = True
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
 			subdir = arg
@@ -36,6 +37,8 @@ def main():
 				flt_str = '_%.1fkm'%(FILTER/1000)
 		elif opt in ("O","--OUT_BASE"):
 			out_base = os.path.expanduser(arg)
+		elif opt in ("M","--noMASK"):
+			make_mask = False
 	
 	indir = os.path.join(in_base,subdir)
 
@@ -53,7 +56,7 @@ def main():
 	print('# of files: ', len(pred_list))
 	
 	#-- threshold for getting contours and centerlines
-	eps = 0.3
+	eps = 0.2
 
 	#-- open file for list of polygons to run through centerline routine
 	list_fid = open(os.path.join(slurm_dir,'total_job_list.sh'),'w')
@@ -69,11 +72,12 @@ def main():
 		#-- get transformation matrix
 		trans = raster.transform
 
-		#-- also read the corresponding mask file
-		mask_file = os.path.join(indir,f.replace('.tif','_mask.tif'))
-		mask_raster = rasterio.open(mask_file,'r')
-		mask = mask_raster.read(1)
-		mask_raster.close()
+		if make_mask:
+			#-- also read the corresponding mask file
+			mask_file = os.path.join(indir,f.replace('.tif','_mask.tif'))
+			mask_raster = rasterio.open(mask_file,'r')
+			mask = mask_raster.read(1)
+			mask_raster.close()
 
 		#-- get contours of prediction
 		#-- close contour ends to make polygons
@@ -94,13 +98,16 @@ def main():
 			x[n],y[n] = rasterio.transform.xy(trans, contour[:,0], contour[:,1])
 
 			pols[n] = Polygon(zip(x[n],y[n]))
-			#-- get elements of mask the contour is on
-			submask = mask[np.round(contour[:, 0]).astype('int'), np.round(contour[:, 1]).astype('int')]
-			#-- if more than half of the elements are from test tile, count contour as test type
-			if np.count_nonzero(submask) > submask.size/2.:
-				pol_type[n] = 'Test'
+			if make_mask:
+				#-- get elements of mask the contour is on
+				submask = mask[np.round(contour[:, 0]).astype('int'), np.round(contour[:, 1]).astype('int')]
+				#-- if more than half of the elements are from test tile, count contour as test type
+				if np.count_nonzero(submask) > submask.size/2.:
+					pol_type[n] = 'Test'
+				else:
+					pol_type[n] = 'Train'
 			else:
-				pol_type[n] = 'Train'
+				pol_type[n] = 'Test'
 
 		#-- loop through remaining polygons and determine which ones are 
 		#-- pinning points based on the width and length of the bounding box
@@ -198,13 +205,12 @@ def main():
 				fid.write("#SBATCH -n1\n")
 				fid.write("#SBATCH --mem=10G\n")
 				fid.write("#SBATCH -t %i\n"%run_time)
-				fid.write("#SBATCH -p sib2.9\n")
+				fid.write("#SBATCH -p sib2.9,nes2.8,has2.5,brd2.4,ilg2.3,m-c2.2,m-c1.9,m2090\n")
 				fid.write("#SBATCH --job-name=gl_%i_%i_%i\n"%(pcount,idx,count))
 				fid.write("#SBATCH --mail-user=ymohajer@uci.edu\n")
 				fid.write("#SBATCH --mail-type=FAIL\n\n")
 
-				fid.write('module load anaconda/2/5.1.0\n')
-				fid.write('source activate GDAL\n')
+				fid.write('source ~/miniconda3/bin/activate gl_env\n')
 				fid.write('python %s %s\n'%\
 					(os.path.join(out_base,'GL_learning','run_centerline.py'),\
 					os.path.join(out_base,subdir,'shapefiles.dir','%s.shp'%out_name)))

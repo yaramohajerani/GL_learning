@@ -9,9 +9,8 @@ import sys
 import getopt
 import numpy as np
 from osgeo import gdal,osr
-import imageio
+# import imageio
 import rasterio
-import matplotlib.pyplot as plt
 
 #-- directory setup
 gdrive = os.path.join(os.path.expanduser('~'),'Google Drive File Stream',
@@ -151,8 +150,8 @@ def main():
 		ds = None
 		
 		#-- also save image for reference
-		outfile = os.path.join(path_stitched,'%s.png'%dinsar_to_stitch)
-		imageio.imsave(outfile,(arr_out*255).astype(np.ubyte))
+		# outfile = os.path.join(path_stitched,'%s.png'%dinsar_to_stitch)
+		# imageio.imsave(outfile,(arr_out*255).astype(np.ubyte))
 		
 #-- run main program
 if __name__ == '__main__':

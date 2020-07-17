@@ -12,8 +12,6 @@ import fiona
 import getopt
 import numpy as np
 from scipy import stats
-import matplotlib.pyplot as plt
-from descartes import PolygonPatch
 from shapely.geometry import LineString,Polygon
 
 #-- directory setup
@@ -45,6 +43,11 @@ def main():
 			plot_dists = True
 		elif opt in ("-N","--NAMES"):
 			NAMES = arg
+
+	#-- import necessary packages if making plots
+	if plot_dists:
+		import matplotlib.pyplot as plt
+		from descartes import PolygonPatch
 
 	#-- Get list of postprocessed files
 	pred_dir = os.path.join(ddir,'stitched.dir',subdir,'shapefiles.dir')
