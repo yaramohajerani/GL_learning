@@ -52,8 +52,6 @@ def main():
 	raster = rasterio.open(pred_list[0],'r')
 	nx_tile = raster.width
 	ny_tile = raster.height
-	#-- get transformation matrix
-	trans = raster.transform
 	out_crs = raster.crs.to_epsg()
 	raster.close()
 
@@ -102,13 +100,16 @@ def main():
 		#-- initialize tile mask
 		arr_mask = np.zeros((ny_out,nx_out),dtype=int)
 		#-- loop through tiles and adding to larger scene array
+		trans = {}
 		for i,tile_to_stitch in enumerate(list_tile_to_stitch):
 			raster = rasterio.open(tile_to_stitch,'r')
 			tile_in = raster.read(1).astype(float)
+			#-- get transformation matrix
+			trans[i] = raster.transform
 
 			arr_sum[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += tile_in*kernel_weight
 			arr_weight[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += kernel_weight
-		
+
 			raster.close()
 
 		#-- noramlize
@@ -119,9 +120,9 @@ def main():
 		arr_out[arr_out < 0] = 0.0
 
 		#-- get pixel size
-		x1,y1 = rasterio.transform.xy(trans, 0, 0)
-		x2,y2 = rasterio.transform.xy(trans, 0, 1)
-		x3,y3 = rasterio.transform.xy(trans, 1, 0)
+		x1,y1 = rasterio.transform.xy(trans[i], 0, 0)
+		x2,y2 = rasterio.transform.xy(trans[i], 0, 1)
+		x3,y3 = rasterio.transform.xy(trans[i], 1, 0)
 		dx = np.abs(x2 - x1)
 		dy = np.abs(y3 - y1)
 		#-- Now find the coordinates of the upper left corner of scene based on total size
