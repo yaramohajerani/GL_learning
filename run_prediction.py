@@ -8,12 +8,10 @@ Run already trained network on specifed data.
 import os
 import sys
 import imp
-import random
 import getopt
-from osgeo import gdal,osr
-import rasterio
 import numpy as np
-import matplotlib.pyplot as plt 
+import rasterio
+from osgeo import gdal,osr
 import keras
 from keras import backend as K
 from keras.preprocessing import image
@@ -66,7 +64,7 @@ def main():
 
 	#-- Get list of images
 	fileList = os.listdir(ddir)
-	file_list = [f for f in fileList if (f.endswith('.tif') and f.startswith('coco'))]
+	file_list = sorted([f for f in fileList if ( (f.endswith('DIR00.tif') or f.endswith('DIR11.tif')) and f.startswith('coco') )])
 	N = len(file_list)
 
 	#-- read first file to get dimensions
@@ -86,15 +84,12 @@ def main():
 	#-- set up model
 	if mod_lbl == 'unet':
 		print('loading unet model')
-		model = mod_module.unet_model_double_dropout(height=h,width=wi,channels=ch, 
-												n_init=ninit,n_layers=ndown,
-												drop=dropout_frac)
+		model = mod_module.unet_model_double_dropout(height=h,width=wi,\
+			channels=ch,n_init=ninit,n_layers=ndown,drop=dropout_frac)
 	elif mod_lbl == 'atrous':
 		print("loading atrous model")
-		model = mod_module.nn_model_atrous_double_dropout(height=h,width=wi,
-														channels=ch,
-														n_filts=ninit,
-													drop=dropout_frac)
+		model = mod_module.nn_model_atrous_double_dropout(height=h,\
+			width=wi,channels=ch,n_filts=ninit,drop=dropout_frac)
 	else:
 		print('Model label not correct.')
 
