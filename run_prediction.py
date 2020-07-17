@@ -19,13 +19,14 @@ from keras.preprocessing import image
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','DOWN=','INIT=','DROPOUT=','RATIO=','MOD=','NUM=','START=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:W:I:O:R:M:N:S:',long_options)
+	long_options=['DIR=','DOWN=','INIT=','DROPOUT=','RATIO=','MOD=','NUM=','START=','MODEL_DIR=']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:W:I:O:R:M:N:S:L:',long_options)
 
 	#-- Set default settings
 	ddir = os.path.join(os.path.expanduser('~'),'Google Drive File Stream',\
 		'Shared drives','GROUNDING_LINE_TEAM_DRIVE','ML_Yara','S1_Pope-Smith-Kohler',\
 		'UNUSED','coco_PSK-UNUSED_with_null')
+	model_dir = os.path.join(os.path.expanduser('~'),'GL_learning')
 	ndown = 4 # number of 'down' steps
 	ninit = 32 #number of channels to start with
 	dropout_frac = 0.2 # dropout fraction
@@ -36,6 +37,8 @@ def main():
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
 			ddir = os.path.expanduser(arg)
+		elif opt in ("-L","--MODEL_DIR"):
+			model_dir = os.path.expanduser(arg)
 		elif opt in ("-W","--DOWN"):
 			ndown = int(arg)
 		elif opt in ("-I","--INIT"):
@@ -79,8 +82,7 @@ def main():
 	ch = 2
 
 	#-- Import model
-	current_dir = os.getcwd() 
-	mod_module = imp.load_source('nn_model',os.path.join(current_dir,'nn_model.py'))
+	mod_module = imp.load_source('nn_model',os.path.join(model_dir,'nn_model.py'))
 	#-- set up model
 	if mod_lbl == 'unet':
 		print('loading unet model')
@@ -102,7 +104,7 @@ def main():
 				metrics=['accuracy'])
 
 	#-- checkpoint file
-	chk_file = os.path.join(current_dir,'{0}_weights.h5'.format(mod_str))
+	chk_file = os.path.join(model_dir,'{0}_weights.h5'.format(mod_str))
 	print(chk_file)
 	#-- if file exists, read model from file
 	if os.path.isfile(chk_file):
