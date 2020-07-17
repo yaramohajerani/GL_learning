@@ -12,8 +12,6 @@ import pandas as pd
 import geopandas as gpd
 from rasterio.crs import CRS
 
-in_base = os.path.expanduser('~')
-
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
@@ -21,19 +19,17 @@ def main():
 	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:',long_options)
 
 	#-- Set default settings
-	subdir = os.path.join('GL_learning_data','geocoded_v1'\
+	indir = os.path.join(os.path.expanduser('~'),'GL_learning_data','geocoded_v1'\
 		,'stitched.dir','atrous_32init_drop0.2_customLossR727.dir')
 	FILTER = 0.
 	flt_str = ''
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
-			subdir = arg
+			indir = os.path.expanduser(arg)
 		elif opt in ("-F","--FILTER"):
 			if arg not in ['NONE','none','None','N','n',0]:
 				FILTER = float(arg)
 				flt_str = '_%.1fkm'%(FILTER/1000)
-	
-	indir = os.path.join(in_base,subdir,'shapefiles.dir')
 
 	#-- Get list of center files and complete scenes
 	fileList = os.listdir(indir)
