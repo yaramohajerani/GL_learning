@@ -19,8 +19,8 @@ from keras.preprocessing import image
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','DOWN=','INIT=','DROPOUT=','RATIO=','MOD=','NUM=','START=','MODEL_DIR=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:W:I:O:R:M:N:S:L:',long_options)
+	long_options=['DIR=','DOWN=','INIT=','DROPOUT=','RATIO=','MOD=','NUM=','START=','MODEL_DIR=','RUN_ALL']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:W:I:O:R:M:N:S:L:A',long_options)
 
 	#-- Set default settings
 	ddir = os.path.join(os.path.expanduser('~'),'Google Drive File Stream',\
@@ -34,6 +34,7 @@ def main():
 	mod_lbl = 'atrous'
 	num = 500
 	cc = 0
+	run_all = False
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
 			ddir = os.path.expanduser(arg)
@@ -53,6 +54,9 @@ def main():
 			num = int(arg)
 		elif opt in ("-S","--START"):
 			cc = int(arg)
+		elif opt in ("-A","--RUN_ALL"):
+			run_all = True
+			cc = 0
 
 	#-- set up model name
 	if mod_lbl == 'unet':
@@ -67,8 +71,10 @@ def main():
 
 	#-- Get list of images
 	fileList = os.listdir(ddir)
-	file_list = sorted([f for f in fileList if ( (f.endswith('DIR00.tif') or f.endswith('DIR11.tif')) and f.startswith('coco') )])
+	# file_list = sorted([f for f in fileList if ( (f.endswith('DIR00.tif') or f.endswith('DIR11.tif')) and f.startswith('coco') )])
+	file_list = sorted([f for f in fileList if (f.endswith('.tif') and f.startswith('coco'))])
 	N = len(file_list)
+	print(N)
 
 	#-- read first file to get dimensions
 	raster = rasterio.open(os.path.join(ddir,file_list[0]))
@@ -121,66 +127,67 @@ def main():
 	out_dir = os.path.join(ddir,'{0}.dir'.format(mod_str))
 	if (not os.path.isdir(out_dir)):
 		os.mkdir(out_dir)
-	#-- read "num" files at a time
-	print(cc)
-	#-- Read data all at once
-	imgs = np.ones((num,h,wi,ch))
-	trans = [None]*num
-	for i,f in enumerate(file_list[cc:cc+num]):
-		#-- read image
-		raster = rasterio.open(os.path.join(ddir,f))
-		try:
-			imgs[i,:,:,0] = raster.read(1).real
-			imgs[i,:,:,1] = raster.read(1).imag
-		except:
-			print('Skipping %s'%f)
-			imgs[i,:,:,0] = None
-			imgs[i,:,:,1] = None
-		#-- get transformation matrix
-		trans[i] = raster.transform
-		raster.close()
+	#-- if not running all, set max number to 'num'. otherwise N is total
+	#-- number of files
+	if not run_all:
+		N = num 
+	while (cc < N):
+		#-- read "num" files at a time
+		print(cc)
+		#-- Read data all at once
+		imgs = np.ones((num,h,wi,ch))
+		trans = [None]*num
+		for i,f in enumerate(file_list[cc:cc+num]):
+			#-- read image
+			raster = rasterio.open(os.path.join(ddir,f))
+			try:
+				imgs[i,:,:,0] = raster.read(1).real
+				imgs[i,:,:,1] = raster.read(1).imag
+			except:
+				print('Skipping %s'%f)
+				imgs[i,:,:,0] = None
+				imgs[i,:,:,1] = None
+			#-- get transformation matrix
+			trans[i] = raster.transform
+			raster.close()
 
-	out_crs = raster.crs.to_epsg()
-	out_imgs = model.predict(imgs, batch_size=1, verbose=1)
-	out_imgs = out_imgs.reshape(out_imgs.shape[0],h,wi,out_imgs.shape[2])
-	
-	#-- save output images
-	for i,f in enumerate(file_list[cc:cc+num]):
-		#-- get pixel size
-		x1,y1 = rasterio.transform.xy(trans[i], 0, 0)
-		x2,y2 = rasterio.transform.xy(trans[i], 0, 1)
-		x3,y3 = rasterio.transform.xy(trans[i], 1, 0)
-		dx = np.abs(x2 - x1)
-		dy = np.abs(y3 - y1)
-		#-- Now find the coordinates of the upper left corner of scene based on total size
-		#-- note the x1,y1 refers to position list_x0[i],list_y0[i]
-		list_x0=int(f.split('_x')[1].split('_y')[0])
-		list_y0=int(f.split('_y')[1].split('_DIR')[0])
-		x_orig = x1 - (dx*list_x0)
-		y_orig = y1 + (dy*list_y0)
+		out_crs = raster.crs.to_epsg()
+		out_imgs = model.predict(imgs, batch_size=1, verbose=1)
+		out_imgs = out_imgs.reshape(out_imgs.shape[0],h,wi,out_imgs.shape[2])
+		
+		#-- save output images
+		for i,f in enumerate(file_list[cc:cc+num]):
+			#-- get pixel size
+			x_orig,y_orig = rasterio.transform.xy(trans[i], 0, 0)
+			x2,y2 = rasterio.transform.xy(trans[i], 0, 1)
+			x3,y3 = rasterio.transform.xy(trans[i], 1, 0)
+			dx = np.abs(x2 - x_orig)
+			dy = np.abs(y3 - y_orig)
 
-		#-- get transformation for output
-		#-- output as geotiff
-		driver = gdal.GetDriverByName("GTiff")
-		#-- set up the dataset with compression options (1 is for band 1)
-		OPTS = ['COMPRESS=LZW']
-		ds = driver.Create(os.path.join(out_dir,os.path.basename(f).replace('coco','pred')),\
-			h, wi, 1, gdal.GDT_Float32, OPTS)
-		#-- top left x, w-e pixel resolution, rotation
-		#-- top left y, rotation, n-s pixel resolution
-		ds.SetGeoTransform([x_orig, dx, 0, y_orig, 0, -dy])
-		#-- set the reference info
-		srs = osr.SpatialReference()
-		srs.ImportFromEPSG(out_crs)
-		#-- export
-		ds.SetProjection( srs.ExportToWkt() )
-		#-- write to geotiff array
-		ds.GetRasterBand(1).WriteArray(out_imgs[i].reshape(h,wi))
-		ds.FlushCache()
-		ds = None
-		#-- also save as image
-		# im = image.array_to_img(out_imgs[i]) 
-		# im.save(os.path.join(out_dir,os.path.basename(f).replace('coco','pred').replace('tif','png')))
+			#-- get transformation for output
+			#-- output as geotiff
+			driver = gdal.GetDriverByName("GTiff")
+			#-- set up the dataset with compression options (1 is for band 1)
+			OPTS = ['COMPRESS=LZW']
+			ds = driver.Create(os.path.join(out_dir,os.path.basename(f).replace('coco','pred')),\
+				h, wi, 1, gdal.GDT_Float32, OPTS)
+			#-- top left x, w-e pixel resolution, rotation
+			#-- top left y, rotation, n-s pixel resolution
+			ds.SetGeoTransform([x_orig, dx, 0, y_orig, 0, -dy])
+			#-- set the reference info
+			srs = osr.SpatialReference()
+			srs.ImportFromEPSG(out_crs)
+			#-- export
+			ds.SetProjection( srs.ExportToWkt() )
+			#-- write to geotiff array
+			ds.GetRasterBand(1).WriteArray(out_imgs[i].reshape(h,wi))
+			ds.FlushCache()
+			ds = None
+			#-- also save as image
+			# im = image.array_to_img(out_imgs[i]) 
+			# im.save(os.path.join(out_dir,os.path.basename(f).replace('coco','pred').replace('tif','png')))
+		#-- increment counter
+		cc += num
 
 #-- run main program
 if __name__ == '__main__':
