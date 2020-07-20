@@ -52,11 +52,14 @@ def main():
 	pred_list = [f for f in fileList if (f.endswith('.tif') and ('mask' not in f))]
 	#-- LOCAL output directory
 	local_output_dir = os.path.join(indir,'shapefiles.dir')
-	#-- slurm directory
-	slurm_dir = os.path.join(indir,'slurm.dir')
-	#-- make directories if they don't exist
+	#-- make output directory if it doesn't exist
 	if not os.path.exists(local_output_dir):
 		os.mkdir(local_output_dir)
+	#-- slurm directory
+	slurm_dir = os.path.join(indir,'slurm.dir')
+	#-- make slurm directory if it doesn't exist
+	if not os.path.exists(slurm_dir):
+		os.mkdir(slurm_dir)
 	
 	print('# of files: ', len(pred_list))
 	
