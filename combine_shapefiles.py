@@ -55,8 +55,8 @@ def main():
 			gdf = []
 			for ll in sub_list:
 				g2 = gpd.read_file(os.path.join(indir,ll))
-				for iID in range(len(g2['ID'])):
-					g2['ID'][iID] = g2['ID'][iID].replace('err','')
+				# for iID in range(len(g2['ID'])):
+				# 	g2['ID'][iID] = g2['ID'][iID].replace('err','')
 				gdf.append(g2)
 			#-- concatenate dataframes
 			combined = gpd.GeoDataFrame(pd.concat(gdf))
