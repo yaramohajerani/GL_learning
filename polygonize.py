@@ -21,13 +21,13 @@ def main():
 	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:O:I:M',long_options)
 
 	#-- Set default settings
-	subdir = os.path.join('GL_learning_data','geocoded_v1'\
+	subdir = os.path.join('geocoded_v1'\
 		,'stitched.dir','atrous_32init_drop0.2_customLossR727.dir')
 	FILTER = 0.
 	flt_str = ''
 	out_base = '/DFS-L/DATA/isabella/ymohajer/GL_learning_data'
 	make_mask = True
-	in_base = os.path.expanduser('~')
+	in_base = os.path.expanduser('~/GL_learning_data')
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
 			subdir = arg
@@ -64,16 +64,16 @@ def main():
 	print('# of files: ', len(pred_list))
 	
 	#-- threshold for getting contours and centerlines
-	eps = 0.2
+	eps = 0.3
 
 	#-- open file for list of polygons to run through centerline routine
-	list_fid = open(os.path.join(slurm_dir,'total_job_list.sh'),'w')
+	list_fid = open(os.path.join(slurm_dir,'total_job_list%s.sh'%flt_str),'w')
 
 	#-- loop through prediction files
 	#-- get contours and save each as a line in shapefile format
 	for pcount,f in enumerate(pred_list):
 		#-- open job list for this file
-		sub_list_fid = open(os.path.join(slurm_dir,f.replace('.tif','.sh')),'w')
+		sub_list_fid = open(os.path.join(slurm_dir,f.replace('.tif','%s.sh'%flt_str)),'w')
 		#-- read file
 		raster = rasterio.open(os.path.join(indir,f),'r')
 		im = raster.read(1)
@@ -231,7 +231,7 @@ def main():
 		
 		sub_list_fid.close()
 		#-- add sub list fid to total job list
-		list_fid.write('sh %s\n'%os.path.join(out_base,subdir,'slurm.dir',f.replace('.tif','.sh')))
+		list_fid.write('sh %s\n'%os.path.join(out_base,subdir,'slurm.dir',f.replace('.tif','%s.sh'%flt_str)))
 
 		
 		#-- save all contours to file
