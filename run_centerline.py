@@ -25,6 +25,8 @@ def main():
 		#-- read shapefile
 		gdf = gpd.read_file(INPUT)
 		out_gdf = copy(gdf)
+		#-- remove 'err' from ID
+		out_gdf['ID'][0] = gdf['ID'][0].replace('err','')
 		#-- check if this is a pinning point
 		if gdf['Class'][0] == 'Pinning Contour':
 			#-- pinning point. Just get perimeter of polygon
