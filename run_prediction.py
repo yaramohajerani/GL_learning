@@ -131,6 +131,7 @@ def main():
 	#-- number of files
 	if not run_all:
 		N = num 
+	print('Running total: ', N)
 	while (cc < N):
 		#-- read "num" files at a time
 		print(cc)

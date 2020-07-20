@@ -12,13 +12,6 @@ from osgeo import gdal,osr
 # import imageio
 import rasterio
 
-#-- directory setup
-gdrive = os.path.join(os.path.expanduser('~'),'Google Drive File Stream',
-	'Shared drives','GROUNDING_LINE_TEAM_DRIVE','ML_Yara','geocoded_v1')
-gdrive_out = output_dir = os.path.join(os.path.expanduser('~'),'Google Drive File Stream',
-	'My Drive','GL_Learning')
-outdir = os.path.expanduser('~/GL_learning_data/geocoded_v1')
-
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
@@ -26,7 +19,7 @@ def main():
 	optlist,arglist = getopt.getopt(sys.argv[1:],'D:K:F',long_options)
 
 	#-- Set default settings
-	ddir = '/Volumes/GoogleDrive/Shared drives/GROUNDING_LINE_TEAM_DRIVE/ML_Yara/S1_Pope-Smith-Kohler/UNUSED/pred_PSK-UNUSED_with_null/atrous_32init_drop0.2_customLossR727.dir'
+	ddir = '/Volumes/GoogleDrive/Shared drives/GROUNDING_LINE_TEAM_DRIVE/ML_Yara/S1_Pope-Smith-Kohler/UNUSED/coco_PSK-UNUSED_with_null/atrous_32init_drop0.2_customLossR727.dir'
 	flag_gaussian_weight = True
 	sigma_kernel = 0.05
 	for opt, arg in optlist:
@@ -97,8 +90,6 @@ def main():
 		#-- initialize sum of tiles and weights
 		arr_sum=np.zeros((ny_out,nx_out))
 		arr_weight=np.zeros((ny_out,nx_out))
-		#-- initialize tile mask
-		arr_mask = np.zeros((ny_out,nx_out),dtype=int)
 		#-- loop through tiles and adding to larger scene array
 		trans = {}
 		for i,tile_to_stitch in enumerate(list_tile_to_stitch):
@@ -106,6 +97,8 @@ def main():
 			tile_in = raster.read(1).astype(float)
 			#-- get transformation matrix
 			trans[i] = raster.transform
+			#-- set nan elements to 0
+			tile_in[np.isnan(tile_in)] = 0.0
 
 			arr_sum[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += tile_in*kernel_weight
 			arr_weight[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += kernel_weight
