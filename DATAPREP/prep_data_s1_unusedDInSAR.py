@@ -273,7 +273,7 @@ if __name__=='__main__':
                         gtf_list=[x0+grid_x[j]*dem_gc_par.xposting,
                                   dem_gc_par.xposting,
                                   0,
-                                  y1+grid_y[i]*dem_gc_par.xposting,
+                                  y1+grid_y[i]*dem_gc_par.yposting,
                                   0,
                                   dem_gc_par.yposting]
                                   
