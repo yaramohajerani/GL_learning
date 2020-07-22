@@ -71,8 +71,8 @@ def main():
 
 	#-- Get list of images
 	fileList = os.listdir(ddir)
-	file_list = sorted([f for f in fileList if ( (f.endswith('DIR00.tif') or f.endswith('DIR11.tif')) and f.startswith('coco') )])
-	# file_list = sorted([f for f in fileList if (f.endswith('.tif') and f.startswith('coco'))])
+	# file_list = sorted([f for f in fileList if ( (f.endswith('DIR00.tif') or f.endswith('DIR11.tif')) and f.startswith('coco') )])
+	file_list = sorted([f for f in fileList if (f.endswith('.tif') and f.startswith('coco'))])
 	N = len(file_list)
 	print(N)
 
