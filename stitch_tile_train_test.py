@@ -142,9 +142,9 @@ def main():
 		out_crs = raster.crs.to_epsg()
 		raster.close()
 		#-- get pixel size
-		x1,y1 = rasterio.transform.xy(trans, 0, 0, offset='ul')
-		x2,y2 = rasterio.transform.xy(trans, 0, 1, offset='ul')
-		x3,y3 = rasterio.transform.xy(trans, 1, 0, offset='ul')
+		x1,y1 = rasterio.transform.xy(trans, 0, 0)
+		x2,y2 = rasterio.transform.xy(trans, 0, 1)
+		x3,y3 = rasterio.transform.xy(trans, 1, 0)
 		dx = np.abs(x2 - x1)
 		dy = np.abs(y3 - y1)
 		#-- Now find the coordinates of the upper left corner of scene based on total size
