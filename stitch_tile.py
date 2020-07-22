@@ -24,7 +24,7 @@ def main():
 	sigma_kernel = 0.05
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
-			ddir = arg
+			ddir = os.path.expanduser(arg)
 		elif opt in ("-K","--KERNEL"):
 			sigma_kernel = float(arg)
 		elif opt in ("-F","--noFLAG"):
@@ -34,7 +34,7 @@ def main():
 	#-- Get list of geotiff label files
 	fileList = os.listdir(ddir)
 	pred_list = [os.path.join(ddir,f) for f in fileList if (f.endswith('.tif') and f.startswith('pred'))]
-	
+	print(pred_list)
 	#-- output directory
 	path_stitched = os.path.join(ddir,'stitched.dir')
 	#-- make directories if they don't exist
@@ -121,7 +121,8 @@ def main():
 		#-- Now find the coordinates of the upper left corner of scene based on total size
 		#-- note the x1,y1 refers to position list_x0[i],list_y0[i]
 		x_orig = x1 - (dx*list_x0[i])
-		y_orig = y1 + (dy*list_y0[i])
+		# y_orig = y1 + (dy*list_y0[i])
+		y_orig = y1 - (dy*list_y0[i]) #- temporary fix for problem in metadata in current data
 
 		#-- get transformation for output
 		#-- output as geotiff
