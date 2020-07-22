@@ -11,8 +11,7 @@ import sys
 import fiona
 import getopt
 import numpy as np
-import matplotlib.pyplot as plt
-from descartes import PolygonPatch
+from scipy import stats
 from shapely.geometry import LineString,Polygon
 
 #-- directory setup
@@ -44,6 +43,11 @@ def main():
 			plot_dists = True
 		elif opt in ("-N","--NAMES"):
 			NAMES = arg
+
+	#-- import necessary packages if making plots
+	if plot_dists:
+		import matplotlib.pyplot as plt
+		from descartes import PolygonPatch
 
 	#-- Get list of postprocessed files
 	pred_dir = os.path.join(ddir,'stitched.dir',subdir,'shapefiles.dir')
@@ -201,9 +205,13 @@ def main():
 			plt.close(fig)
 
 	#-- also save the overal average
-	outtxt.write('%.1f \tMEAN\n'%(np.nanmean(distances)))
-	outtxt.write('%.1f \tMIN\n'%(np.nanmin(minims)))
-	outtxt.write('%.1f \tMAX\n'%(np.nanmax(maxims)))
+	outtxt.write('\nMEAN\t\t\t\t%.1f m\n'%(np.nanmean(distances)))
+	outtxt.write('MIN\t\t\t\t\t%.1f m\n'%(np.nanmin(minims)))
+	outtxt.write('MAX\t\t\t\t\t%.1f m\n'%(np.nanmax(maxims)))
+	outtxt.write('Interquartile Range\t%.1f m\n'%(stats.iqr(distances,nan_policy='omit')))
+	outtxt.write('MAD\t\t\t\t\t%.1f m\n'%(stats.median_absolute_deviation(distances,nan_policy='omit')))
+	outtxt.write('STD\t\t\t\t\t%.1f m\n'%(np.nanstd(distances)))
+	 
 	outtxt.close()
 	
 #-- run main program

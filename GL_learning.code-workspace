@@ -3,5 +3,8 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"python.pythonPath": "/Users/yaramohajerani/opt/anaconda3/bin/python"
+	}
 }

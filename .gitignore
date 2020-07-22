@@ -1,9 +1,8 @@
-#macos system file
 .DS_Store
 
 # VS Code workspace files
-.vscode
-.code-workspace
+*.vscode
+*.code-workspace
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 u"""
-Yara Mohajerani (Last Update 04/2020)
+Yara Mohajerani (Last Update 07/2020)
 
 data generator class for feeding data into keras model.
 Modified from https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
 """
 import numpy as np
-import rasterio
 import keras
 
 class DataGenerator(keras.utils.Sequence):
@@ -54,6 +53,6 @@ class DataGenerator(keras.utils.Sequence):
 			#-- read image
 			X[i,] = np.load(ID)
 			#-- read labels
-			y[i,] = np.load(ID.replace('coco','delineation'))
+			y[i,] = np.load(ID.replace('coco','delineation').replace('pred','delineation'))
 
 		return X,y
