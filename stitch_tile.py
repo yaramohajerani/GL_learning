@@ -19,7 +19,7 @@ def main():
 	optlist,arglist = getopt.getopt(sys.argv[1:],'D:K:F',long_options)
 
 	#-- Set default settings
-	ddir = '/Volumes/GoogleDrive/Shared drives/GROUNDING_LINE_TEAM_DRIVE/ML_Yara/S1_Pope-Smith-Kohler/UNUSED/coco_PSK-UNUSED_with_null/atrous_32init_drop0.2_customLossR727.dir'
+	ddir = os.path.expanduser('~/GL_learning_data/S1_Pope-Smith-Kohler/UNUSED/coco_PSK-UNUSED_with_null/atrous_32init_drop0.2_customLossR727.dir')
 	flag_gaussian_weight = True
 	sigma_kernel = 0.05
 	for opt, arg in optlist:
@@ -32,9 +32,10 @@ def main():
 			print('Not using Gaussian kernel.')
 
 	#-- Get list of geotiff label files
+	print(ddir)
 	fileList = os.listdir(ddir)
 	pred_list = [os.path.join(ddir,f) for f in fileList if (f.endswith('.tif') and f.startswith('pred'))]
-	print(pred_list)
+
 	#-- output directory
 	path_stitched = os.path.join(ddir,'stitched.dir')
 	#-- make directories if they don't exist
@@ -120,9 +121,9 @@ def main():
 		dy = np.abs(y3 - y1)
 		#-- Now find the coordinates of the upper left corner of scene based on total size
 		#-- note the x1,y1 refers to position list_x0[i],list_y0[i]
-		x_orig = x1 - (dx*list_x0[i])
-		# y_orig = y1 + (dy*list_y0[i])
-		y_orig = y1 - (dy*list_y0[i]) #- temporary fix for problem in metadata in current data
+		x_orig = x1 - (dx*list_x0[i]) - dx/2
+		# y_orig = y1 + (dy*list_y0[i]) + dy/2
+		y_orig = y1 - (dy*list_y0[i]) + dy/2 #- temporary fix for problem in metadata in current data
 
 		#-- get transformation for output
 		#-- output as geotiff

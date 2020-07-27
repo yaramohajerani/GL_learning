@@ -19,9 +19,7 @@ import matplotlib.pyplot as plt
 #-- directory setup
 gdrive = os.path.join(os.path.expanduser('~'),'Google Drive File Stream',
 	'Shared drives','GROUNDING_LINE_TEAM_DRIVE','ML_Yara','geocoded_v1')
-gdrive_out = output_dir = os.path.join(os.path.expanduser('~'),'Google Drive File Stream',
-	'My Drive','GL_Learning')
-outdir = os.path.expanduser('~/GL_learning_data/geocoded_v1')
+ddir = os.path.expanduser('~/GL_learning_data/geocoded_v1')
 
 #-- main function
 def main():
@@ -55,15 +53,15 @@ def main():
 	#-- Get list of prediction files
 	pred_list = {}
 	for t in ['Train','Test']:
-		pred_dir = os.path.join(gdrive_out,'%s_predictions.dir'%t,subdir)
+		pred_dir = os.path.join(ddir,'%s_predictions.dir'%t,subdir)
 		fileList = os.listdir(pred_dir)
 		pred_list[t] = [os.path.join(pred_dir,f) for f in fileList \
-			if (f.endswith('.png') and f.startswith('pred'))]
+			if (f.endswith('.npy') and f.startswith('pred'))]
 	#-- combine test and train dataset and add the whole path
 	list_tile = pred_list['Train'] + pred_list['Test']
 
 	#-- output directory
-	path_stitched = os.path.join(outdir,'stitched.dir',subdir)
+	path_stitched = os.path.join(ddir,'stitched.dir',subdir)
 	#-- make directories if they don't exist
 	if not os.path.exists(path_stitched):
 		os.mkdir(path_stitched)
@@ -114,7 +112,7 @@ def main():
 		arr_mask = np.zeros((ny_out,nx_out),dtype=int)
 		#-- loop through tiles and adding to larger scene array
 		for i,tile_to_stitch in enumerate(list_tile_to_stitch):
-			tile_in=imageio.imread(tile_to_stitch)
+			tile_in= np.squeeze(np.load(tile_to_stitch))
 
 			arr_sum[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += tile_in.astype(np.float)*kernel_weight
 			arr_weight[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += kernel_weight
@@ -126,16 +124,12 @@ def main():
 		arr_out = arr_sum/arr_weight
 		#-- nan values from division by 0 are set to 0 (no tile coverage)
 		arr_out[np.isnan(arr_out)] = 0.0
-		#-- apply tresholding (remembering input png is 0-255)
-		# arr_out[np.nonzero(arr_out < 125)] = 0
-		# arr_out[np.nonzero(arr_out >= 125)]= 1
-		#-- normalize to 0 - 1
-		arr_out /= 255.
+
 		#-- Design transform for adding geocoded information
 		#-- read the geotiff corresponding to the last tile to get geocoding
 		#-- find the corresponding geotif file
 		#-- first find the index of the corresponding file
-		file_ind = lbl_list.index(os.path.basename(tile_to_stitch).replace('pred','delineation').replace('.png','.tif'))
+		file_ind = lbl_list.index(os.path.basename(tile_to_stitch).replace('pred','delineation').replace('.npy','.tif'))
 		raster = rasterio.open(os.path.join(gdrive,'delineationtile_withoutnull_v1',lbl_list[file_ind]),'r')
 		#-- get transformation matrix
 		trans = raster.transform
@@ -149,8 +143,10 @@ def main():
 		dy = np.abs(y3 - y1)
 		#-- Now find the coordinates of the upper left corner of scene based on total size
 		#-- note the x1,y1 refers to position list_x0[i],list_y0[i]
-		x_orig = x1 - (dx*list_x0[i])
-		y_orig = y1 + (dy*list_y0[i])
+		#-- NOTE the file name coordinates are in point mode (corners) but we want to convert
+		#-- everything to area (center) mode. So add an artifical 1/2 pixel shift to corners
+		x_orig = x1 - (dx*list_x0[i]) - dx/2
+		y_orig = y1 + (dy*list_y0[i]) + dy/2
 
 		#-- get transformation for output
 		#-- output as geotiff
@@ -173,8 +169,8 @@ def main():
 		ds = None
 		
 		#-- also save image for reference
-		outfile = os.path.join(path_stitched,'%s.png'%dinsar_to_stitch)
-		imageio.imsave(outfile,(arr_out/arr_out.max()*255).astype(np.ubyte))
+		# outfile = os.path.join(path_stitched,'%s.png'%dinsar_to_stitch)
+		# imageio.imsave(outfile,(arr_out/arr_out.max()*255).astype(np.ubyte))
 		
 		#-- also output mask geotiff
 		driver = gdal.GetDriverByName("GTiff")
