@@ -24,7 +24,6 @@ def main():
 	subdir = os.path.join('geocoded_v1'\
 		,'stitched.dir','atrous_32init_drop0.2_customLossR727.dir')
 	FILTER = 0.
-	flt_str = ''
 	out_base = '/DFS-L/DATA/isabella/ymohajer/GL_learning_data'
 	make_mask = True
 	in_base = os.path.expanduser('~/GL_learning_data')
@@ -34,14 +33,14 @@ def main():
 		elif opt in ("-F","--FILTER"):
 			if arg not in ['NONE','none','None','N','n',0]:
 				FILTER = float(arg)
-				flt_str = '_%.1fkm'%(FILTER/1000)
 		elif opt in ("O","--OUT_BASE"):
 			out_base = os.path.expanduser(arg)
 		elif opt in ("I","--IN_BASE"):
 			in_base = os.path.expanduser(arg)
 		elif opt in ("M","--noMASK"):
 			make_mask = False
-		
+	flt_str = '_%.1fkm'%(FILTER/1000)
+
 	#-- make sure out directory doesn't end with '\' so we can get parent directory
 	if out_base.endswith('/'):
 		out_base = out_base[:-1]
@@ -204,7 +203,7 @@ def main():
 				
 				#-- write corresponding slurm file
 				#-- calculate run time
-				run_time = int(p.length/400)+10
+				run_time = int(p.length/300)+10
 
 				outfile = os.path.join(slurm_dir,'%s.sh'%out_name)
 				fid = open(outfile,'w')
