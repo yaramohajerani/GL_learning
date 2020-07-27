@@ -28,8 +28,7 @@ def main():
 
 	#-- Set default settings
 	subdir = 'atrous_32init_drop0.2_customLossR727.dir'
-	FILTER = 0.
-	flt_str = ''
+	FILTER = 6000.
 	plot_dists = False
 	NAMES = None
 	for opt, arg in optlist:
@@ -38,11 +37,11 @@ def main():
 		elif opt in ("-F","--FILTER"):
 			if arg not in ['NONE','none','None','N','n',0]:
 				FILTER = float(arg)
-				flt_str = '_%.1fkm'%(FILTER/1000)
 		elif opt in ("-P","--PLOT"):
 			plot_dists = True
 		elif opt in ("-N","--NAMES"):
 			NAMES = arg
+	flt_str = '_%.1fkm'%(FILTER/1000)
 
 	#-- import necessary packages if making plots
 	if plot_dists:
@@ -98,6 +97,22 @@ def main():
 		dist = []
 		#-- loop over ML line segments and form bounding boxes
 		for ml_original in ml_lines:
+			#-- break the line into n_seg segments
+			lcoords = list(ml_original.coords)
+			if len(lcoords) < 50:
+				ml_broken = [ml_original]
+			else:
+				#-- start from segments of 10 coordiantes, and increase until 
+				#-- you find a divisible number
+				n_seg = 50
+				while len(lcoords)%n_seg < 10:
+					n_seg += 1
+				ml_broken = []
+				bc = 0
+				while bc < len(lcoords):
+					ml_broken.append(LineString(lcoords[bc:bc+n_seg]))
+					bc += n_seg
+			"""
 			#-- if the line is more than 50 km long, break it into smaller lines
 			if ml_original.length >= 50e3:
 				#-- this is a rough breakdown. We can just break it into 100 indices at a time
@@ -111,6 +126,7 @@ def main():
 					ml_broken.append(LineString(lcoords[bc:]))
 			else:
 				ml_broken = [ml_original]
+			"""
 			for ml in ml_broken:
 				box = ml.minimum_rotated_rectangle
 				#-- get hd line segment that intersects the box
