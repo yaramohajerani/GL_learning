@@ -176,8 +176,8 @@ def main():
 			#-- output as geotiff
 			driver = gdal.GetDriverByName("GTiff")
 			#-- set up the dataset with compression options (1 is for band 1)
-			OPTS = ['COMPRESS=NONE'] #['COMPRESS=PACKBITS'] #['COMPRESS=LZW']
-			ds = driver.Create(os.path.join(out_dir,os.path.basename(f).replace('coco','TEST_pred')),\
+			OPTS = ['COMPRESS=LZW'] #['COMPRESS=NONE'] #['COMPRESS=PACKBITS']
+			ds = driver.Create(os.path.join(out_dir,os.path.basename(f).replace('coco','pred')),\
 				h, wi, 1, gdal.GDT_Float32, OPTS)
 			#-- top left x, w-e pixel resolution, rotation
 			#-- top left y, rotation, n-s pixel resolution
