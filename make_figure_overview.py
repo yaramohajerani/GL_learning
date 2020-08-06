@@ -21,14 +21,29 @@ import rasterio
 from rasterio.plot import show
 
 base_dir = os.path.expanduser('~')
-ddir = os.path.join(base_dir,'GL_learning_data','geocoded_v1','stitched.dir',\
-	'atrous_32init_drop0.2_customLossR727.dir','shapefiles.dir')
-FILTER = 6000.
-flt_str = '_%.1fkm'%(FILTER/1000)
 
-fileList = os.listdir(ddir)
-gl_list = sorted([f for f in fileList if (f.endswith('%s.shp'%flt_str) and (f.startswith('gl_')))])
-er_list = sorted([f for f in fileList if (f.endswith('%s_ERR.shp'%flt_str) and (f.startswith('gl_')))])
+ddir1 = os.path.join(base_dir,'GL_learning_data','geocoded_v1','stitched.dir',\
+	'atrous_32init_drop0.2_customLossR727.dir','shapefiles.dir')
+flt_str1 = '_6.0km'
+
+ddir2 = os.path.join(base_dir,'GL_learning_data','S1_Pope-Smith-Kohler','UNUSED',\
+	'coco_PSK-UNUSED_with_null','atrous_32init_drop0.2_customLossR727.dir','stitched.dir','shapefiles.dir')
+flt_str2 = '_8.0km'
+
+fileList = os.listdir(ddir1)
+gl_list1 = [os.path.join(ddir1,f) for f in fileList if (f.endswith('%s.shp'%flt_str1) and (f.startswith('gl_')))]
+er_list1 = [os.path.join(ddir1,f) for f in fileList if (f.endswith('%s_ERR.shp'%flt_str1) and (f.startswith('gl_')))]
+
+print('# in ddir1: ',len(gl_list1))
+
+fileList = os.listdir(ddir2)
+gl_list2 = [os.path.join(ddir2,f) for f in fileList if (f.endswith('%s.shp'%flt_str2) and (f.startswith('gl_')))]
+er_list2 = [os.path.join(ddir2,f) for f in fileList if (f.endswith('%s_ERR.shp'%flt_str2) and (f.startswith('gl_')))]
+
+gl_list = sorted(gl_list1 + gl_list2)
+er_list = sorted(er_list1 + er_list2)
+
+print('# in ddir2: ',len(gl_list2))
 
 print('# of GLs: ', len(gl_list))
 print('# of ERs: ', len(er_list))
@@ -60,11 +75,11 @@ indices = []
 #- 1) Plot all GLs
 #-------------------------------------------------------
 for i,f in enumerate(gl_list):
-	gdf = gpd.read_file(os.path.join(ddir,f))
+	gdf = gpd.read_file(f)
 	gdf.plot(ax=ax[0],color='black',linewidth=0.7)
 
 	#-- get dates
-	dates = f.split('_')[2].split('-')
+	dates = os.path.basename(f).split('_')[2].split('-')
 
 	#-- extract geometry to see if it's in region of interest
 	for k in range(len(gdf['geometry'])):
@@ -112,13 +127,13 @@ cb = plt.colorbar(img,ax=ax[1],orientation="horizontal",pad=0.02)#,format='%.1f'
 #-------------------------------------------------------
 for i in [0,int(len(ind_sort)/2),len(ind_sort)-1]:
 	file_ind = indices[i]
-	gdf = gpd.read_file(os.path.join(ddir,er_list[file_ind]))
+	gdf = gpd.read_file(er_list[file_ind])
 	gdf.plot(ax=ax[2],color=cmap(i/len(ind_sort)),linewidth=0.6,alpha=0.8)
 #-- add colorbar for dates
 cb = plt.colorbar(img,ax=ax[2],orientation="horizontal",pad=0.02)#,format='%.1f')
 
 ax[0].set_xlim((-1678433.1825792969, -908143.1658347661))
-ax[0].set_ylim((-1330369.81441327, -504273.8973213372))
+ax[0].set_ylim((-1330369.81441327, -470000))  #-504273.8973213372))
 for i in [1,2]:
 	ax[i].set_xlim([x1,x2])
 	ax[i].set_ylim([y1,y2])
@@ -131,11 +146,11 @@ for i in range(3):
 	ax[i].get_xaxis().set_ticks([])
 	ax[i].get_yaxis().set_ticks([])
 
-ax[0].set_title('All Delineations in Getz')
+ax[0].set_title('All Delineations')
 ax[1].set_title('Grounding Zones')
 ax[2].set_title('Uncertainty Bars')
 fig.subplots_adjust(wspace=0.0, hspace=0.0)
 plt.tight_layout()
 # plt.show()
-plt.savefig(os.path.join(ddir,'overview.pdf'),format='PDF')
+plt.savefig(os.path.join(base_dir,'GL_learning_data','overview_raw.pdf'),format='PDF')
 plt.close(fig)
