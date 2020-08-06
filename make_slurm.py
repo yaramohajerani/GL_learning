@@ -48,7 +48,7 @@ def main():
 		fid.write("#SBATCH -N1\n")
 		fid.write("#SBATCH -n1\n")
 		fid.write("#SBATCH --mem=20G\n")
-		fid.write("#SBATCH -t0-02:00:00\n")
+		fid.write("#SBATCH -t1-00:00:00\n")
 		fid.write("#SBATCH -p sib2.9,nes2.8,has2.5,brd2.4,ilg2.3,m-c2.2,m-c1.9,m2090\n")
 		fid.write("#SBATCH --job-name=%s_%i\n"%(os.path.basename(ddir),cc))
 		fid.write("#SBATCH --mail-user=ymohajer@uci.edu\n")
