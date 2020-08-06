@@ -13,11 +13,15 @@ import numpy as np
 import rasterio
 from osgeo import gdal,osr
 import keras
+import timeit
 from keras import backend as K
 from keras.preprocessing import image
+from tensorflow.python.client import device_lib
 
 #-- main function
 def main():
+	# print(K.tensorflow_backend._get_available_gpus())
+	print(device_lib.list_local_devices())
 	#-- Read the system arguments listed after the program
 	long_options=['DIR=','DOWN=','INIT=','DROPOUT=','RATIO=','MOD=','NUM=','START=','MODEL_DIR=','RUN_ALL']
 	optlist,arglist = getopt.getopt(sys.argv[1:],'D:W:I:O:R:M:N:S:L:A',long_options)
@@ -123,6 +127,7 @@ def main():
 	#-------------------------------
 	#-- Run model on data
 	#-------------------------------
+	start_time = timeit.default_timer()
 	#-- make output directory
 	out_dir = os.path.join(ddir,'{0}.dir'.format(mod_str))
 	if (not os.path.isdir(out_dir)):
@@ -171,8 +176,8 @@ def main():
 			#-- output as geotiff
 			driver = gdal.GetDriverByName("GTiff")
 			#-- set up the dataset with compression options (1 is for band 1)
-			OPTS = ['COMPRESS=LZW']
-			ds = driver.Create(os.path.join(out_dir,os.path.basename(f).replace('coco','pred')),\
+			OPTS = ['COMPRESS=NONE'] #['COMPRESS=PACKBITS'] #['COMPRESS=LZW']
+			ds = driver.Create(os.path.join(out_dir,os.path.basename(f).replace('coco','TEST_pred')),\
 				h, wi, 1, gdal.GDT_Float32, OPTS)
 			#-- top left x, w-e pixel resolution, rotation
 			#-- top left y, rotation, n-s pixel resolution
@@ -191,7 +196,9 @@ def main():
 			# im.save(os.path.join(out_dir,os.path.basename(f).replace('coco','pred').replace('tif','png')))
 		#-- increment counter
 		cc += num
-
+	#-- print total time
+	end_time = timeit.default_timer()
+	print('Time Elapsed: ', end_time - start_time)  
 #-- run main program
 if __name__ == '__main__':
 	main()
