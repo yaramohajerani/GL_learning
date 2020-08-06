@@ -130,8 +130,10 @@ def main():
 	#-- if not running all, set max number to 'num'. otherwise N is total
 	#-- number of files
 	if not run_all:
-		N = num 
-	print('Running total: ', N)
+		N = num + cc
+	print('Running total: ', num)
+	print('start: ', cc)
+	print('N: ', N)
 	while (cc < N):
 		#-- read "num" files at a time
 		print(cc)
