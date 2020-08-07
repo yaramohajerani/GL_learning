@@ -1,6 +1,6 @@
 u"""
 convert_shapefile_thinning.py
-Yara Mohajerani (Last update 07/2020)
+Yara Mohajerani (Last update 08/2020)
 
 Read output predictions and convert to shapefile lines
 """
@@ -98,13 +98,17 @@ def main():
 		x = {}
 		y = {}
 		noise = []
+		none_list = []
 		pols = [None]*len(contours)
 		pol_type = [None]*len(contours)
 		for n,contour in enumerate(contours):
 			#-- convert to coordinates
 			x[n],y[n] = rasterio.transform.xy(trans, contour[:,0], contour[:,1])
-
-			pols[n] = Polygon(zip(x[n],y[n]))
+			if len(x[n]) < 3:
+				pols[n] = None
+				none_list.append(n)
+			else:
+				pols[n] = Polygon(zip(x[n],y[n]))
 			if make_mask:
 				#-- get elements of mask the contour is on
 				submask = mask[np.round(contour[:, 0]).astype('int'), np.round(contour[:, 1]).astype('int')]
@@ -122,18 +126,19 @@ def main():
 		box_ll = [None]*len(contours)
 		box_ww = [None]*len(contours)
 		for n in range(len(pols)):
-			box_ll[n] = pols[n].length
-			box_ww[n] = pols[n].area/box_ll[n]
-			#-- if the with is larger than 1/25 of the length, it's a pinning point
-			if box_ww[n] > box_ll[n]/25:
-				pin_list.append(n)
+			if n not in none_list:
+				box_ll[n] = pols[n].length
+				box_ww[n] = pols[n].area/box_ll[n]
+				#-- if the with is larger than 1/25 of the length, it's a pinning point
+				if box_ww[n] > box_ll[n]/25:
+					pin_list.append(n)
 
 		#-- Loop through all the polygons and take any overlapping areas out
 		#-- of the enclosing polygon and ignore the inside polygon
 		ignore_list = []
 		for i in range(len(pols)):
 			for j in range(len(pols)):
-				if (i != j) and pols[i].contains(pols[j]):
+				if (i != j) and (i not in none_list) and (j not in none_list) and pols[i].contains(pols[j]):
 					# pols[i] = pols[i].difference(pols[j])
 					if (i in pin_list) and (j in pin_list):
 						#-- if it's a pinning point, ignore outer loop
@@ -148,12 +153,16 @@ def main():
 		#-- loop through and apply noise filter
 		for n in range(len(contours)):
 			#-- apply filter
-			if (n not in ignore_list) and (len(x[n]) < 2 or LineString(zip(x[n],y[n])).length <= FILTER):
+			if (n not in none_list) and (n not in ignore_list) and (len(x[n]) < 2 or LineString(zip(x[n],y[n])).length <= FILTER):
 				noise.append(n)
 
 		#-- find overlap between ignore list nad noise list
 		if len(list(set(noise) & set(ignore_list))) != 0:
 			sys.exit('Overlap not empty: ', list(set(noise) & set(ignore_list)))
+		#-- find overlap between ignore list nad none list
+		if len(list(set(none_list) & set(ignore_list))) != 0:
+			sys.exit('Overlap not empty: ', list(set(none_list) & set(ignore_list)))
+
 
 		#-- initialize list of contour linestrings
 		er = [None]*len(contours)
@@ -168,8 +177,8 @@ def main():
 		for idx,p in enumerate(pols):
 			er[idx] = [list(a) for a in zip(x[idx],y[idx])]
 			er_type[idx] = pol_type[idx]
-			if idx in noise:
-				er_class[idx] = 'Noise'				
+			if (idx in noise) or (idx in none_list):
+				er_class[idx] = 'Noise'			
 			elif idx in ignore_list:
 				er_class[idx] = 'Ignored Contour'
 			else:
