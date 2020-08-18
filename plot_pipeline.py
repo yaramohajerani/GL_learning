@@ -12,6 +12,8 @@ import rasterio.plot as rasplt
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import geopandas as gpd
+from shapely.geometry import Polygon
+from descartes import PolygonPatch
 
 # fname = 'gl_054_171228-180103-180109-180115_019901-009005-020076-009180_T102441_T102440'
 # fname = 'gl_007_180518-180524-180530-180605_021954-011058-022129-011233_T050854_T050855'
@@ -46,9 +48,18 @@ for i,k in enumerate(color_dic.keys()):
 cmap_tif = ListedColormap(color_list)
 #-- plot interferogram
 rasplt.show(src.read(1), ax=ax[0,0], transform=src.transform, cmap=cmap_tif)
-ax[0,0].set_title('Input & Label', fontsize=14, fontweight='bold')
+ax[0,0].set_title('a)', fontsize=14, fontweight='bold', loc='left') #Input & Label
 #-- plot GL labels
 gdf.plot(ax=ax[0,0], legend=True,linewidth=2,color='black')
+
+#-- figure limits
+x1,x2 = -1.5e6,-1.4e6
+y1,y2 = -9e5,-10.6e5
+
+#-- add ruler for zoomed in plots
+ax[0,0].plot([x1+5000,x1+5000],[y1-5000,y1-10000],color='white',linewidth=2.)
+ax[0,0].text(x1+18000,y1-7500,'10 km',horizontalalignment='center',\
+	verticalalignment='center', color='white',fontweight='bold')
 
 #-----------------------------------------------------
 #-- read output tif and plot
@@ -61,9 +72,13 @@ src2 = rasterio.open(infile.replace('.tif','_mask.tif'),'r')
 #-- plot stiched prediction file
 rasplt.show(src1.read(1), ax=ax[0,1], transform=src.transform, cmap='binary',zorder=1)
 rasplt.show(src2.read(1), ax=ax[0,1], transform=src.transform, cmap='binary',zorder=2,alpha=0.3)
-ax[0,1].set_title('NN Output & Mask', fontsize=14, fontweight='bold')
+ax[0,1].set_title('b)', fontsize=14, fontweight='bold', loc='left') #ML Output & Mask
 src1.close()
 src2.close()
+#-- add ruler for zoomed in plots
+ax[0,1].plot([x1+5000,x1+5000],[y1-5000,y1-10000],color='white',linewidth=2.,zorder=10)
+ax[0,1].text(x1+18000,y1-7500,'10 km',horizontalalignment='center',\
+	verticalalignment='center', color='white',fontweight='bold')
 
 #-----------------------------------------------------
 #-- read output shapefiles and plot
@@ -79,6 +94,11 @@ gdf1.plot(ax=ax[1,0],linewidth=2,color='black',zorder=2)
 #-- plot interferogram
 rasplt.show(src.read(1), ax=ax[1,0], transform=src.transform, cmap=cmap_tif,zorder=1)
 
+#-- add ruler for zoomed in plots
+ax[1,0].plot([x1+5000,x1+5000],[y1-5000,y1-10000],color='white',linewidth=2.)
+ax[1,0].text(x1+18000,y1-7500,'10 km',horizontalalignment='center',\
+	verticalalignment='center', color='white',fontweight='bold')
+
 #- 2) zoomed-in scene
 gdf1.plot(ax=ax[1,1],linewidth=2.5,color='indigo',zorder=4)
 gdf2.plot(ax=ax[1,1],linewidth=2.,linestyle='--',color='indigo',zorder=3)
@@ -87,16 +107,29 @@ gdf.plot(ax=ax[1,1],linewidth=2.5,color='white',zorder=2)
 #-- plot interferogram
 rasplt.show(src.read(1), ax=ax[1,1], transform=src.transform, cmap=cmap_tif,zorder=1)
 
+#-- limits of zoomed-in area
+x1z,x2z = -1.437e6,-1.4239e6
+y1z,y2z = -957.5e3,-977e3
+ax[1,1].plot([x2z-2600,x2z-2600],[y2z+1000,y2z+2000],color='white',linewidth=2.)
+ax[1,1].text(x2z-1200,y2z+1500,'1 km',horizontalalignment='center',\
+	verticalalignment='center', color='white',fontweight='bold')
 
+#-- make polygon for zoomed-in area
+poly = Polygon([(x1z,y2z),(x1z,y1z),(x2z,y1z),(x2z,y2z)])
+#-- plot box around zoomed in area
+# zoom_area = PolygonPatch(poly,alpha=0.4,facecolor=None,edgecolor='gray', linewidth=2,zorder=10)
+# ax[1,0].add_patch(zoom_area)
+xedge, yedge = poly.exterior.xy
+ax[1,0].plot(xedge,yedge,color='maroon',linewidth=2)#,linestyle='--')
 
 #-- add legend to zoomed in plot
-ax[1,1].plot([],[],color='indigo',linewidth=1.5,label='NN GL')
-ax[1,1].plot([],[],color='indigo',linewidth=1,linestyle='--',label='NN Uncertainty')
+ax[1,1].plot([],[],color='indigo',linewidth=1.5,label='ML GL')
+ax[1,1].plot([],[],color='indigo',linewidth=1,linestyle='--',label='ML Uncertainty')
 ax[1,1].plot([],[],color='white',linewidth=1.5,label='Manual GL')
 ax[1,1].legend(loc='lower left',facecolor='silver')
 
-ax[1,0].set_title('Vectorized GL & Uncertainty', fontsize=14, fontweight='bold')
-ax[1,1].set_title('Zoomed-in Comparison', fontsize=14, fontweight='bold')
+ax[1,0].set_title('c)', fontsize=14, fontweight='bold', loc='left') #Vectorized GL & Uncertainty
+ax[1,1].set_title('d)', fontsize=14, fontweight='bold', loc='left') #Zoomed-in Comparison
 
 src.close()
 
@@ -107,11 +140,11 @@ for i in range(2):
 		ax[i,j].get_yaxis().set_visible(False)
 		# ax[i,j].set_aspect('equal')
 		if i == 1 and j == 1:
-			ax[i,j].set_xlim([-1.437e6,-1.4239e6])
-			ax[i,j].set_ylim([-977e3,-957.5e3])
+			ax[i,j].set_xlim([x1z,x2z])
+			ax[i,j].set_ylim([y2z,y1z])
 		else:
-			ax[i,j].set_xlim([-1.5e6,-1.4e6])
-			ax[i,j].set_ylim([-10.6e5,-9e5])
+			ax[i,j].set_xlim([x1,x2])
+			ax[i,j].set_ylim([y2,y1])
 plt.tight_layout()
 plt.savefig(os.path.join(base_dir,'geocoded_v1','stitched.dir',\
 	'atrous_32init_drop0.2_customLossR727.dir','Pipeline_Figure.pdf'),format='PDF')
