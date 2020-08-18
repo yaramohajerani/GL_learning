@@ -76,7 +76,11 @@ indices = []
 #-------------------------------------------------------
 for i,f in enumerate(gl_list):
 	gdf = gpd.read_file(f)
-	gdf.plot(ax=ax[0],color='black',linewidth=0.7)
+	for g in range(len(gdf['geometry'])):
+		if gdf['geometry'][g].length > 10e3:
+			x,y = gdf['geometry'][g].coords.xy
+			ax[0].plot(x,y,'-k',linewidth=0.7)
+	# gdf.plot(ax=ax[0],color='black',linewidth=0.5)
 
 	#-- get dates
 	dates = os.path.basename(f).split('_')[2].split('-')
@@ -115,9 +119,10 @@ ind_sort = np.argsort(tmean)
 #-------------------------------------------------------
 #- 2) Plot zoomed-in GZ
 #-------------------------------------------------------
-for i in ind_sort:
-	xs,ys = lines[i].coords.xy
-	ax[1].plot(xs,ys,linewidth=0.4,alpha=0.8,color=cmap(i/len(ind_sort)))
+for c,i in enumerate(ind_sort):
+	if lines[i].length > 8e3:
+		xs,ys = lines[i].coords.xy
+		ax[1].plot(xs,ys,linewidth=0.4,alpha=0.8,color=cmap(c/len(ind_sort)),zorder=1)
 #-- add colorbar for dates
 img = ax[1].imshow([tmean], cmap=cmap)
 img.set_clim(2018,2019)
@@ -125,15 +130,28 @@ cb = plt.colorbar(img,ax=ax[1],orientation="horizontal",pad=0.02)#,format='%.1f'
 #-------------------------------------------------------
 #- 3) Plot uncertanties
 #-------------------------------------------------------
-for i in [0,int(len(ind_sort)/2),len(ind_sort)-1]:
-	file_ind = indices[i]
+for i in [0,int(len(ind_sort)/2)+2 ,len(ind_sort)-7]:
+	idx = ind_sort[i]
+	file_ind = indices[idx]
 	gdf = gpd.read_file(er_list[file_ind])
-	gdf.plot(ax=ax[2],color=cmap(i/len(ind_sort)),linewidth=0.6,alpha=0.8)
+	for g in range(len(gdf['geometry'])):
+		if gdf['geometry'][g].length > 12e3:
+			x,y = gdf['geometry'][g].coords.xy
+			ax[2].plot(x,y,color=cmap(i/len(ind_sort)),linewidth=0.8,alpha=0.8)
+	# gdf.plot(ax=ax[2],color=cmap(i/len(ind_sort)),linewidth=0.6,alpha=0.8)
 #-- add colorbar for dates
 cb = plt.colorbar(img,ax=ax[2],orientation="horizontal",pad=0.02)#,format='%.1f')
 
-ax[0].set_xlim((-1678433.1825792969, -908143.1658347661))
-ax[0].set_ylim((-1330369.81441327, -470000))  #-504273.8973213372))
+#-- set up limits of main plot
+x1m,x2m = -1678433.1825792969, -908143.1658347661
+y1m,y2m = -504273.8973213372,-1330369.81441327 # y1 = -504273.8973213372
+ax[0].set_xlim((x1m,x2m))
+ax[0].set_ylim((y2m,y1m)) 
+#-- add ruler for main plot
+ax[0].plot([x1m+18e3,x1m+18e3],[y2m+30000,y2m+80000],color='black',linewidth=2.)
+ax[0].text(x1m+1e5,y2m+55000,'50 km',horizontalalignment='center',\
+	verticalalignment='center', color='black')
+
 for i in [1,2]:
 	ax[i].set_xlim([x1,x2])
 	ax[i].set_ylim([y1,y2])
@@ -145,9 +163,10 @@ for i in [1,2]:
 for i in range(3):
 	ax[i].get_xaxis().set_ticks([])
 	ax[i].get_yaxis().set_ticks([])
+	ax[i].set_aspect('equal')
 
 ax[0].set_title('All Delineations')
-ax[1].set_title('Grounding Zones')
+ax[1].set_title('Grounding Zone')
 ax[2].set_title('Uncertainty Bars')
 fig.subplots_adjust(wspace=0.0, hspace=0.0)
 plt.tight_layout()
