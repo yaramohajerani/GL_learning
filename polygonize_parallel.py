@@ -35,8 +35,6 @@ def main():
 				FILTER = float(arg)
 		elif opt in ("B","--BASE_DIR"):
 			base_dir = os.path.expanduser(arg)
-		elif opt in ("B","--BASE_DIR"):
-			base_dir = os.path.expanduser(arg)
 		elif opt in ("N","--NUM"):
 			num = int(arg)
 		elif opt in ("S","--START"):
