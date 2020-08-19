@@ -12,14 +12,16 @@ import getopt
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DATA_DIR=','SLURM_DIR=','CODE_DIR=','NUM=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:S:C:N:',long_options)
+	long_options=['DATA_DIR=','SLURM_DIR=','CODE_DIR=','NUM=','MODEL=','CLOBBER']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:S:C:N:M:L',long_options)
 
 	#-- Set default settings
 	ddir = '/DFS-L/DATA/gl_ml/SENTINEL1_2018/Track007'
 	slurm_dir = '/DFS-L/DATA/gl_ml/slurm.dir' 
 	code_dir = '/DFS-L/DATA/isabella/ymohajer/GL_learning'
 	num = 1500
+	CLOBBER = False
+	model_str = 'atrous_32init_drop0.2_customLossR727.dir'
 	for opt, arg in optlist:
 		if opt in ("-D","--DATA_DIR"):
 			ddir = os.path.expanduser(arg)
@@ -29,11 +31,24 @@ def main():
 			code_dir = os.path.expanduser(arg)
 		elif opt in ("-N","--NUM"):
 			num = int(arg)
+		elif opt in ("-M","--MODEL"):
+			model_str = arg
+		elif opt in ("L","--CLOBBER"):
+			CLOBBER = True
 
 	#-- Get list of images
 	fileList = os.listdir(ddir)
-	# file_list = sorted([f for f in fileList if ( (f.endswith('DIR00.tif') or f.endswith('DIR11.tif')) and f.startswith('coco') )])
-	file_list = sorted([f for f in fileList if (f.endswith('.tif') and f.startswith('coco'))])
+
+	#-- if not overwriting, only get files that don't already exist
+	if not CLOBBER:
+		#-- get list of exisiting files
+		existList = os.listdir(os.path.join(ddir,model_str))
+		exist_list = sorted([f.replace('coco','pred') for f in existList if (f.endswith('.tif') and f.startswith('pred'))])
+		#-- now get list of files that are not already exisiting
+		file_list = sorted([f for f in fileList if (f.endswith('.tif') and f.startswith('coco') and f not in exist_list)])
+	else:
+		file_list = sorted([f for f in fileList if (f.endswith('.tif') and f.startswith('coco'))])
+	#-- get total number of files
 	N = len(file_list)
 	print(N)
 
@@ -48,7 +63,7 @@ def main():
 		fid.write("#SBATCH -N1\n")
 		fid.write("#SBATCH -n1\n")
 		fid.write("#SBATCH --mem=20G\n")
-		fid.write("#SBATCH -t1-00:00:00\n")
+		fid.write("#SBATCH -t0-06:00:00\n")
 		fid.write("#SBATCH -p sib2.9,nes2.8,has2.5,brd2.4,ilg2.3,m-c2.2,m-c1.9,m2090\n")
 		fid.write("#SBATCH --job-name=%s_%i\n"%(os.path.basename(ddir),cc))
 		fid.write("#SBATCH --mail-user=ymohajer@uci.edu\n")
