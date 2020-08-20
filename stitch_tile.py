@@ -94,17 +94,21 @@ def main():
 		#-- loop through tiles and adding to larger scene array
 		trans = {}
 		for i,tile_to_stitch in enumerate(list_tile_to_stitch):
-			raster = rasterio.open(tile_to_stitch,'r')
-			tile_in = raster.read(1).astype(float)
-			#-- get transformation matrix
-			trans[i] = raster.transform
-			#-- set nan elements to 0
-			tile_in[np.isnan(tile_in)] = 0.0
+			try:
+				raster = rasterio.open(tile_to_stitch,'r')
+			except:
+				print('could not read ',tile_to_stitch)
+			else:
+				tile_in = raster.read(1).astype(float)
+				#-- get transformation matrix
+				trans[i] = raster.transform
+				#-- set nan elements to 0
+				tile_in[np.isnan(tile_in)] = 0.0
 
-			arr_sum[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += tile_in*kernel_weight
-			arr_weight[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += kernel_weight
+				arr_sum[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += tile_in*kernel_weight
+				arr_weight[list_y0[i]:list_y0[i]+ny_tile,list_x0[i]:list_x0[i]+nx_tile] += kernel_weight
 
-			raster.close()
+				raster.close()
 
 		#-- noramlize
 		arr_out = arr_sum/arr_weight
