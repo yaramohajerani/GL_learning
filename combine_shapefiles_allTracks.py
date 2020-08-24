@@ -33,7 +33,7 @@ def main():
 
 	#-- get list of all folders (tracks)
 	folderList = os.listdir(ddir)
-	folder_list = [f for f in folderList if os.path.isdir(f)]
+	folder_list = [f for f in folderList if os.path.isdir(os.path.join(ddir,f))]
 	print(folder_list)
 	#-- initialize list to be converted to geopandas dataframe
 	gdf = []
