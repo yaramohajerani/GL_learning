@@ -46,18 +46,26 @@ def main():
 		for f in file_list:
 			#-- read file
 			g = gpd.read_file(os.path.join(ddir,d,'%s.dir'%model_str,'stitched.dir','shapefiles.dir',f))
+			#-- remove rows corresponding to noise
+			ind_remove = []
+			for i in range(len(g)):
+				if g['ID'][i] == None:
+					ind_remove.append(i)
+			g = g.drop(ind_remove)
 			#-- also add file name to attribute table
 			g['FILENAME'] = [f]*len(g['ID'])
 			#-- add to main dataframe list
 			gdf.append(g)
 
+	#print(g.crs)
 	#-- get projection to save file (same for all files, so just read last one)
-	crs_wkt = CRS.from_dict(g.crs).to_wkt()
-
+	#crs_wkt = CRS.from_dict(g.crs).to_wkt()
+	#crs_wkt = CRS.from_dict(init='epsg:3031').to_wkt()
+	#print(crs_wkt)
 	#-- concatenate dataframes
 	combined = gpd.GeoDataFrame(pd.concat(gdf))
 	#-- save to file
-	combined.to_file(os.path.join(ddir,'combined_AllTracks.shp'),driver='ESRI Shapefile',crs_wkt=crs_wkt)
+	combined.to_file(os.path.join(ddir,'combined_AllTracks.shp'),driver='ESRI Shapefile')#,crs_wkt=crs_wkt)
 
 #-- run main program
 if __name__ == '__main__':
