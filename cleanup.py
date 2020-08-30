@@ -38,6 +38,8 @@ def main():
 	n = len(mask)
 	remove_ind = []
 	for i in range(len(gls)):
+		if i%1000 == 0:
+			print('%i/%i'%(i,len(gls)))
 		#-- start assuming GL is noise
 		rm = True
 		j = 0
