@@ -1,9 +1,10 @@
 u"""
-convert_shapefile_thinning.py
+polygonize.py
 Yara Mohajerani (Last update 08/2020)
 
 Read output predictions and convert to shapefile lines
 """
+#TODO use separate directory for script library.
 import os
 import sys
 import rasterio

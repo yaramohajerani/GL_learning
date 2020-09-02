@@ -6,7 +6,6 @@ read polygonized contours and get centerlines for GLs
 """
 import os
 import sys
-from copy import copy
 import numpy as np
 import shapefile
 import geopandas as gpd
@@ -24,7 +23,7 @@ def main():
 	for INPUT in input_list:
 		#-- read shapefile
 		gdf = gpd.read_file(INPUT)
-		out_gdf = copy(gdf)
+		out_gdf = gdf.copy()
 		#-- remove 'err' from ID
 		out_gdf['ID'][0] = gdf['ID'][0].replace('err','')
 		#-- check if this is a pinning point
