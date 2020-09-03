@@ -187,21 +187,33 @@ class sentinel1:
             lines_in=fin.readlines()
         npix=0
         nrec=0
+        x_west=0.0
+        y_north=0.0
+        dx=0.0
+        dy=0.0
+
         for line in lines_in:
             if 'width:' in line:
                 npix=int(line.split()[1])
-            if 'nlines:' in line:
+            elif 'nlines:' in line:
                 nrec=int(line.split()[1])
+            elif 'corner_north:' in line:
+                y_north=float(line.split()[1])
+            elif 'corner_east:' in line:
+                x_west=float(line.split()[1])
+            elif 'post_north:' in line:
+                dy=float(line.split()[1])
+            elif 'post_east:' in line:
+                dx=float(line.split()[1])
+                
 
-            if npix>0 and nrec>0:
-                break
-        
         print('NPIX={}, NREC={}'.format(npix,nrec))
 
         raster_out=grup.raster()
         raster_out.nx=npix
         raster_out.ny=nrec
         raster_out.numbands=1
+        raster_out.GeoTransform=(x_west,dx,0,y_north,0,dy)
         raster_out.z=np.fromfile(filename_coco,dtype=np.complex64).byteswap().reshape((nrec,npix))
 
         return raster_out
