@@ -53,7 +53,7 @@ if __name__=='__main__':
 
             #copy the gl.tif file
             try:
-                #subprocess.call('cp {} {}/'.format(gl_tif,path_project+'/SRCTIFF'),shell=True)
+                subprocess.call('cp {} {}/'.format(gl_tif,path_project+'/SRCTIFF'),shell=True)
                 print('cp {} {}/'.format(gl_tif,path_project+'/SRCTIFF'))
             except:
                 print('WARNING: copying gl tif was not successful:',os.path.basename(gl_tif))
@@ -63,14 +63,14 @@ if __name__=='__main__':
             coco_src=s1procopobj.load_coco(filename_coco)
             #def split_raster(grupraster_in,path_out,prefix_outfile,nx_tile=512,ny_tile=512,dirx=True,diry=True,offset_x=0,offset_y=0,epsg_tile=3031)
             str_prefix=('coco_'+os.path.basename(gl_tif)).replace('.tif','')
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=True,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=True)
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=False,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=True)
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=True,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=True)
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=False,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=True)
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=True,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=True)
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=False,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=True)
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=True,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=True)
-            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=False,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=True)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=True,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=False)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=False,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=False)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=True,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=False)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=False,offset_x=0,offset_y=0,epsg_tile=3031,dryrun=False)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=True,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=False)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=True,diry=False,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=False)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=True,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=False)
+            prep_data.split_raster(coco_src,path_tile_out,str_prefix,dirx=False,diry=False,offset_x=256,offset_y=256,epsg_tile=3031,dryrun=False)
             
 
 
