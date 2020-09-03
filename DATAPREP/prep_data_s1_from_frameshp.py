@@ -6,6 +6,7 @@ import glob
 import prep_data
 import sys
 import os
+import subprocess
 
 #Extract the list of pair strings from a shapefile's attribute table
 def extract_pairstr(filename_shp):
@@ -46,6 +47,13 @@ if __name__=='__main__':
         print(pairstr,'-',len(list_gl_tif),'DInSAR tiff file(s) found.')
 
         for gl_tif in list_gl_tif:
+
+            #copy the gl.tif file
+            try:
+                subprocess.call('cp {} {}/'.format(gl_tif,path_project+'/SRCTIFF'),shell=True)
+            except:
+                print('WARNING: copying gl tif was not successful:',os.path.basename(gl_tif))
+
             #parse gl name into coco
             filename_coco=s1procopobj.gl2coco(os.path.basename(gl_tif))
             coco_src=s1procopobj.load_coco(filename_coco)
