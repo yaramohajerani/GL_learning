@@ -44,6 +44,9 @@ def main():
 			for c in commands:
 				if '#SBATCH -t' in c:
 					outfid.write('#SBATCH -t %i\n'%time)
+				elif '#SBATCH -p' in c:
+					#-- remove m-c1.9 from partitions
+					outfid.write(c.replace(',m-c1.9',''))
 				elif not c.startswith('python'):
 					outfid.write(c)
 			#-- now write python command
