@@ -54,8 +54,8 @@ def main():
 				#-- now write python command
 				outfid.write('python /DFS-L/DATA/isabella/ymohajer/GL_learning/run_centerline.py ')
 				for job in job_list:
-					subname = job.split(' ')[2].replace('\n','')
-					outfid.write('%s '%os.path.join(os.path.basename(job),subname))
+					subname = job.split(' ')[2].replace('.sh\n','.shp')
+					outfid.write('%s '%os.path.join(os.path.basename(job).replace('slurm.dir','shapefiles.dir'),subname))
 				outfid.close()
 				#-- add to master out list
 				out_list.write('nohup sbatch %s\n'%outname)
