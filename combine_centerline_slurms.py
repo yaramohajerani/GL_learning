@@ -25,7 +25,7 @@ def main():
 		for f in file_list:
 			fname = f.split(' ')[1].replace('\n','')
 			#-- initialize output file
-			outname = os.path.join(os.path.basename(f),fname.replace('.sh','_combined.sh'))
+			outname = os.path.join(os.path.dirname(f),fname.replace('.sh','_combined.sh'))
 			outfid = open(outname,'w')
 			#-- now read the individual files
 			fid2 = open(fname,'r')
@@ -54,8 +54,8 @@ def main():
 				#-- now write python command
 				outfid.write('python /DFS-L/DATA/isabella/ymohajer/GL_learning/run_centerline.py ')
 				for job in job_list:
-					subname = job.split(' ')[2].replace('.sh\n','.shp')
-					outfid.write('%s '%os.path.join(os.path.basename(job).replace('slurm.dir','shapefiles.dir'),subname))
+					shp_file = job.split(' ')[2].replace('.sh\n','.shp').replace('slurm.dir','shapefiles.dir')
+					outfid.write('%s '%shp_file)
 				outfid.close()
 				#-- add to master out list
 				out_list.write('nohup sbatch %s\n'%outname)
