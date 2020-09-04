@@ -29,32 +29,34 @@ def main():
 			#-- now read the individual files
 			fid2 = open(fname,'r')
 			job_list = fid2.readlines()
-			time = 0
-			for job in job_list:
-				print("job: ",job)
-				subname = job.split(' ')[2].replace('\n','')
-				fid3 = open(subname,'r')
-				commands = fid3.readlines()
+			if len(job_list) > 0:
+				time = 0
+				for job in job_list:
+					print("job: ",job)
+					subname = job.split(' ')[2].replace('\n','')
+					fid3 = open(subname,'r')
+					commands = fid3.readlines()
+					for c in commands:
+						if '#SBATCH -t' in c:
+							time += int(c.split(' ')[2])
+					fid3.close()
+				fid2.close()
+				#-- make output file
 				for c in commands:
 					if '#SBATCH -t' in c:
-						time += int(c.split(' ')[2])
-				fid3.close()
-			fid2.close()
-			#-- make output file
-			for c in commands:
-				if '#SBATCH -t' in c:
-					outfid.write('#SBATCH -t %i\n'%time)
-				elif '#SBATCH -p' in c:
-					#-- remove m-c1.9 from partitions
-					outfid.write(c.replace(',m-c1.9',''))
-				elif not c.startswith('python'):
-					outfid.write(c)
-			#-- now write python command
-			outfid.write('python /DFS-L/DATA/isabella/ymohajer/GL_learning/run_centerline.py ')
-			for job in job_list:
-				subname = job.split(' ')[2].replace('\n','')
-				outfid.write('%s '%os.path.join(os.path.basename(job),subname))
-			outfid.close()
+						#-- cut time by half
+						outfid.write('#SBATCH -t %i\n'%int(time/2))
+					elif '#SBATCH -p' in c:
+						#-- remove m-c1.9 from partitions
+						outfid.write(c.replace(',m-c1.9',''))
+					elif not c.startswith('python'):
+						outfid.write(c)
+				#-- now write python command
+				outfid.write('python /DFS-L/DATA/isabella/ymohajer/GL_learning/run_centerline.py ')
+				for job in job_list:
+					subname = job.split(' ')[2].replace('\n','')
+					outfid.write('%s '%os.path.join(os.path.basename(job),subname))
+				outfid.close()
 		fid1.close()
 
 #-- run main program
