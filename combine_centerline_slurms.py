@@ -16,12 +16,13 @@ def main():
 		inputs = sys.argv[1:]
 
 	for infile in inputs:
+		#-- make master output list 
+		out_list = open(os.path.expanduser(infile.replace('.sh','_combined.sh')),'w')
 		#-- get list of slurm files
 		fid1 = open(os.path.expanduser(infile), 'r') 
 		file_list = fid1.readlines() 
 		#-- go through lines and read each slurm job
 		for f in file_list:
-			print("f: ",f)
 			fname = f.split(' ')[1].replace('\n','')
 			#-- initialize output file
 			outname = os.path.join(os.path.basename(f),fname.replace('.sh','_combined.sh'))
@@ -32,7 +33,6 @@ def main():
 			if len(job_list) > 0:
 				time = 0
 				for job in job_list:
-					print("job: ",job)
 					subname = job.split(' ')[2].replace('\n','')
 					fid3 = open(subname,'r')
 					commands = fid3.readlines()
@@ -57,7 +57,10 @@ def main():
 					subname = job.split(' ')[2].replace('\n','')
 					outfid.write('%s '%os.path.join(os.path.basename(job),subname))
 				outfid.close()
+				#-- add to master out list
+				out_list.write('nohup sbatch %s\n'%outname)
 		fid1.close()
+		out_list.close()
 
 #-- run main program
 if __name__ == '__main__':
