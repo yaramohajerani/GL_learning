@@ -50,7 +50,7 @@ def main():
 				elif not c.startswith('python'):
 					outfid.write(c)
 			#-- now write python command
-			outfid.write('python /DFS-L/DATA/GL_learning/run_centerline.py ')
+			outfid.write('python /DFS-L/DATA/isabella/ymohajer/GL_learning/run_centerline.py ')
 			for job in job_list:
 				subname = job.split(' ')[2].replace('\n','')
 				outfid.write('%s '%os.path.join(os.path.basename(job),subname))
