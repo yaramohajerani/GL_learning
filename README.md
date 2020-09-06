@@ -1,5 +1,5 @@
 
-# Automated Delineation of Grounding Lines with a Convolutional Neural Network
+# Automatic Delineation of Glacier Grounding Lineswith Differential Interferometric Synthetic-ApertureRadar and Deep Learning
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yaramohajerani/GL_learning/blob/master/LICENSE)
 
@@ -7,7 +7,7 @@ This repository contains the pipeline used for the automatic delineation of glac
 
 The step-by-step procedure is described below.
 
-For questions, contact **Yara Mohajerani** [ymohajer@uci.edu](mailto:ymohajer@uci.edu).
+For questions, contact **Yara Mohajerani** at [ymohajer@uci.edu](mailto:ymohajer@uci.edu).
 
 ### 1. Pre-process geocoded data (geotiff files) into numpy arrays to be used in the training of the neural network:
 
