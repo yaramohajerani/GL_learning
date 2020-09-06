@@ -44,7 +44,7 @@ If you want to use a uniform averaging kernel instead of Gaussian kernel to aver
 ### 5. Post-Processing: Vectorizing Results and Converting to Shapefiles
 Use the combined tiles from the previous step to convert the raster output of the neural network to vectorized LineStrings and save as Shapefiles.
 
-`python polygonize.py.py --DIR=<subdirectory with outputs> --FILTER=<minimum line threshold in meters> --OUT_BASE=<base directory for slurm outputs> --IN_BASE=<base directory for input (parent directory of "--DIR" --noMASK
+`python polygonize.py.py --DIR=<subdirectory with outputs> --FILTER=<minimum line threshold in meters> --OUT_BASE=<base directory for slurm outputs> --IN_BASE=<base directory for input (parent directory of "--DIR" --noMASK`
 
 The `FILTER` input refers to the minimum threshold used to clean up the output. Every line segment shorter than this threshold is disregarded. In addition, note that you can use the `--noMASK` in commandline arguments to not output training vs test masks. If not specified, masks will also be outputted. This is only useful if the input scenes are a combinatino of training and testing tiles (which is the case for the original training and testing data on the Getz Ice Shelf).
 
@@ -68,7 +68,7 @@ is still individual shapefiles for each line segment. Note that only the lines t
 ### 7. Combining centerlines
 To combine the individual centerlines produced in the previous step, run
 
-`python combine_shapefiles.py --DIR=<complete path to shapefile directory> --FILTER=<minimum line threshold in meters in exisiting files>
+`python combine_shapefiles.py --DIR=<complete path to shapefile directory> --FILTER=<minimum line threshold in meters in exisiting files>`
 
 Note that `--DIR` is the full path to the directory where the shapefiles to be combined are. `--FILTER` is the same filter size previously (in meters) that is the suffix of the files to be combined.
 
