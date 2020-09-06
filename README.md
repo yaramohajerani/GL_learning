@@ -1,6 +1,5 @@
 
 # Automated Delineation of Grounding Lines with a Convolutional Neural Network
-=====================
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yaramohajerani/GL_learning/blob/master/LICENSE)
 
