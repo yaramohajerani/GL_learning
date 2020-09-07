@@ -10,7 +10,7 @@ import sys
 import getopt
 import pandas as pd
 import geopandas as gpd
-from rasterio.crs import CRS
+#from rasterio.crs import CRS
 
 #-- main function
 def main():
@@ -39,8 +39,8 @@ def main():
 	print(len(center_list))
 
 	#-- read one error scene to get projection
-	gdf = gpd.read_file(os.path.join(indir,scene_list[0]))
-	crs_wkt = CRS.from_dict(gdf.crs).to_wkt()
+	#gdf = gpd.read_file(os.path.join(indir,scene_list[0]))
+	#crs_wkt = CRS.from_dict(gdf.crs).to_wkt()
 
 	#-- loop over scenes and get all corresponding centerlines and combine
 	for sc in scene_list:
@@ -60,7 +60,7 @@ def main():
 			#-- concatenate dataframes
 			combined = gpd.GeoDataFrame(pd.concat(gdf))
 			#-- save to file
-			combined.to_file(os.path.join(indir,filename[:-1]+'.shp'),driver='ESRI Shapefile',crs_wkt=crs_wkt)
+			combined.to_file(os.path.join(indir,filename[:-1]+'.shp'),driver='ESRI Shapefile')#,crs_wkt=crs_wkt)
 
 #-- run main program
 if __name__ == '__main__':
