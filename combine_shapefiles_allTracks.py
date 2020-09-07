@@ -14,13 +14,14 @@ from rasterio.crs import CRS
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','FILTER=','MODEL=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:M:',long_options)
+	long_options=['DIR=','FILTER=','MODEL=','ERROR']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:M:E',long_options)
 
 	#-- Set default settings
 	ddir = '/DFS-L/DATA/gl_ml/SENTINEL1_2018/'
 	model_str = 'atrous_32init_drop0.2_customLossR727'
 	FILTER = 8000
+	error = False
 	for opt, arg in optlist:
 		if opt in ("-D","--DIR"):
 			ddir = os.path.expanduser(arg)
@@ -29,6 +30,8 @@ def main():
 				FILTER = float(arg)
 		elif opt in ("-M","--MODEL"):
 			model_str = arg
+		elif opt in ("-E","--ERROR"):
+			error = True
 	flt_str = '_%.1fkm'%(FILTER/1000)
 
 	#-- get list of all folders (tracks)
@@ -40,7 +43,10 @@ def main():
 	for d in folder_list:
 		#-- get list of files
 		fileList = os.listdir(os.path.join(ddir,d,'%s.dir'%model_str,'stitched.dir','shapefiles.dir'))
-		file_list = [f for f in fileList if (f.endswith('%s_ERR.shp'%flt_str))]
+		if error:
+			file_list = [f for f in fileList if (f.endswith('%s_ERR.shp'%flt_str))]
+		else:
+			file_list = [f for f in fileList if (f.endswith('%s.shp'%flt_str))]
 
 		print(d,len(file_list))
 		for f in file_list:
@@ -65,7 +71,11 @@ def main():
 	#-- concatenate dataframes
 	combined = gpd.GeoDataFrame(pd.concat(gdf))
 	#-- save to file
-	combined.to_file(os.path.join(ddir,'combined_AllTracks.shp'),driver='ESRI Shapefile')#,crs_wkt=crs_wkt)
+	if error:
+		suffix = ''
+	else:
+		suffix = '_centerLines'
+	combined.to_file(os.path.join(ddir,'combined_AllTracks%s.shp'%suffix),driver='ESRI Shapefile')#,crs_wkt=crs_wkt)
 
 #-- run main program
 if __name__ == '__main__':
