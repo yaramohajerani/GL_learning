@@ -39,6 +39,9 @@ def main():
 		elif opt in ("L","--CLOBBER"):
 			CLOBBER = True
 
+	#-- if ddir ends with '/', remove so we can get basename
+	if ddir.endswith('/'):
+		ddir = ddir[:-1]
 	#-- Get list of images
 	fileList = os.listdir(ddir)
 
