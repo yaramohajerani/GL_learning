@@ -21,7 +21,7 @@ from rasterio.plot import show
 
 base_dir = os.path.expanduser('~')
 
-infile = os.path.join(base_dir,'GL_learning_data','combined_AllTracks_cleaned_15km.shp')
+infile = os.path.join(base_dir,'GL_learning_data','combined_AllTracks_centerLines_cleaned_15km.shp')
 
 
 ddir1 = os.path.join(base_dir,'GL_learning_data','geocoded_v1','stitched.dir',\
