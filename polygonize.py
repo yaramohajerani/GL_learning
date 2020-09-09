@@ -1,10 +1,9 @@
 u"""
 polygonize.py
-Yara Mohajerani (Last update 08/2020)
+Yara Mohajerani (Last update 09/2020)
 
 Read output predictions and convert to shapefile lines
 """
-#TODO use separate directory for script library.
 import os
 import sys
 import rasterio
@@ -18,14 +17,15 @@ from shapely.geometry import Polygon,LineString,Point
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['DIR=','FILTER=','OUT_BASE=','IN_BASE=','noMASK']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:O:I:M',long_options)
+	long_options=['DIR=','FILTER=','OUT_BASE=','CODE_BASE=','IN_BASE=','noMASK']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'D:F:O:C:I:M',long_options)
 
 	#-- Set default settings
-	subdir = os.path.join('geocoded_v1'\
-		,'stitched.dir','atrous_32init_drop0.2_customLossR727.dir')
+	subdir = os.path.join('geocoded_v1','stitched.dir',\
+		'atrous_32init_drop0.2_customLossR727.dir')
 	FILTER = 0.
-	out_base = '/DFS-L/DATA/isabella/ymohajer/GL_learning_data'
+	code_base = '/DFS-L/DATA/isabella/ymohajer/GL_learning'
+	out_base = '/DFS-L/DATA/gl_ml'
 	make_mask = True
 	in_base = os.path.expanduser('~/GL_learning_data')
 	for opt, arg in optlist:
@@ -38,6 +38,8 @@ def main():
 			out_base = os.path.expanduser(arg)
 		elif opt in ("I","--IN_BASE"):
 			in_base = os.path.expanduser(arg)
+		elif opt in ("C","--CODE_BASE"):
+			code_base = os.path.expanduser(arg)
 		elif opt in ("M","--noMASK"):
 			make_mask = False
 	flt_str = '_%.1fkm'%(FILTER/1000)
@@ -222,14 +224,14 @@ def main():
 				fid.write("#SBATCH -n1\n")
 				fid.write("#SBATCH --mem=10G\n")
 				fid.write("#SBATCH -t %i\n"%run_time)
-				fid.write("#SBATCH -p sib2.9,nes2.8,has2.5,brd2.4,ilg2.3,m-c2.2,m-c1.9,m2090\n")
+				fid.write("#SBATCH -p sib2.9,nes2.8,has2.5,brd2.4,ilg2.3,m-c2.2\n")
 				fid.write("#SBATCH --job-name=gl_%i_%i_%i\n"%(pcount,idx,count))
 				fid.write("#SBATCH --mail-user=ymohajer@uci.edu\n")
 				fid.write("#SBATCH --mail-type=FAIL\n\n")
 
 				fid.write('source ~/miniconda3/bin/activate gl_env\n')
 				fid.write('python %s %s\n'%\
-					(os.path.join(os.path.dirname(out_base),'GL_learning','run_centerline.py'),\
+					(os.path.join(code_base,'run_centerline.py'),\
 					os.path.join(out_base,subdir,'shapefiles.dir','%s.shp'%out_name)))
 				fid.close()
 
