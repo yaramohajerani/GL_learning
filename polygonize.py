@@ -224,7 +224,7 @@ def main():
 				fid.write("#SBATCH -n1\n")
 				fid.write("#SBATCH --mem=10G\n")
 				fid.write("#SBATCH -t %i\n"%run_time)
-				fid.write("#SBATCH -p sib2.9,nes2.8,has2.5,brd2.4,ilg2.3,m-c2.2\n")
+				fid.write("#SBATCH -p sib2.9,nes2.8,has2.5,brd2.4,ilg2.3\n")
 				fid.write("#SBATCH --job-name=gl_%i_%i_%i\n"%(pcount,idx,count))
 				fid.write("#SBATCH --mail-user=ymohajer@uci.edu\n")
 				fid.write("#SBATCH --mail-type=FAIL\n\n")
