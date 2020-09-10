@@ -126,8 +126,8 @@ def main():
 		#-- Now find the coordinates of the upper left corner of scene based on total size
 		#-- note the x1,y1 refers to position list_x0[i],list_y0[i]
 		x_orig = x1 - (dx*list_x0[i]) - dx/2
-		# y_orig = y1 + (dy*list_y0[i]) + dy/2
-		y_orig = y1 - (dy*list_y0[i]) + dy/2 #- temporary fix for problem in metadata in current data
+		y_orig = y1 + (dy*list_y0[i]) + dy/2
+		# y_orig = y1 - (dy*list_y0[i]) + dy/2 #- temporary fix for problem in metadata in current data
 
 		#-- get transformation for output
 		#-- output as geotiff
