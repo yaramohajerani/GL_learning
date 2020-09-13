@@ -21,8 +21,8 @@ from rasterio.plot import show
 
 base_dir = os.path.expanduser('~')
 
-infile = os.path.join(base_dir,'GL_learning_data','combined_AllTracks_centerLines_cleaned_15km.shp')
-
+infile1 = os.path.join(base_dir,'GL_learning_data','combined_AllTracks_6d_centerLines_cleaned_15km.shp')
+infile2 = os.path.join(base_dir,'GL_learning_data','combined_AllTracks_12d_centerLines_cleaned_15km.shp')
 
 ddir1 = os.path.join(base_dir,'GL_learning_data','geocoded_v1','stitched.dir',\
 	'atrous_32init_drop0.2_customLossR727.dir','shapefiles.dir')
@@ -89,7 +89,12 @@ indices = []
 #-------------------------------------------------------
 #- 1) Plot all GLs
 #-------------------------------------------------------
-gdf_tot = gpd.read_file(infile)
+gdf_tot = gpd.read_file(infile1)
+for g in range(len(gdf_tot['geometry'])):
+		if gdf_tot['geometry'][g].length > 10e3:
+			x,y = gdf_tot['geometry'][g].coords.xy
+			ax[0].plot(x,y,'-k',linewidth=0.5,zorder=2)
+gdf_tot = gpd.read_file(infile2)
 for g in range(len(gdf_tot['geometry'])):
 		if gdf_tot['geometry'][g].length > 10e3:
 			x,y = gdf_tot['geometry'][g].coords.xy
@@ -160,7 +165,7 @@ ax[0].set_xlim((x1m,x2m))
 ax[0].set_ylim((y1m,y2m))
 # #-- add ruler for main plot
 ax[0].plot([x2m-1.5e5,x2m-1.5e5],[y2m-2e5,y2m-4e5],color='black',linewidth=2.)
-ax[0].text(x2m-10e5,y2m-3e5,'200 km',horizontalalignment='center',\
+ax[0].text(x2m-6e5,y2m-3e5,'200 km',horizontalalignment='center',\
 	verticalalignment='center', color='black')
 
 for i in [1,2]:
