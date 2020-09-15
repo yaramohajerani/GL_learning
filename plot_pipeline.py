@@ -50,7 +50,7 @@ cmap_tif = ListedColormap(color_list)
 rasplt.show(src.read(1), ax=ax[0,0], transform=src.transform, cmap=cmap_tif)
 ax[0,0].set_title('a)', fontsize=14, fontweight='bold', loc='left') #Input & Label
 #-- plot GL labels
-gdf.plot(ax=ax[0,0], legend=True,linewidth=2,color='black')
+gdf.plot(ax=ax[0,0], legend=True,linewidth=2,color='white')
 
 #-- figure limits
 x1,x2 = -1.5e6,-1.4e6
@@ -100,8 +100,8 @@ ax[1,0].text(x1+18000,y1-7500,'10 km',horizontalalignment='center',\
 	verticalalignment='center', color='white',fontweight='bold')
 
 #- 2) zoomed-in scene
-gdf1.plot(ax=ax[1,1],linewidth=2.5,color='indigo',zorder=4)
-gdf2.plot(ax=ax[1,1],linewidth=2.,linestyle='--',color='indigo',zorder=3)
+gdf1.plot(ax=ax[1,1],linewidth=2.5,color='black',zorder=4)
+gdf2.plot(ax=ax[1,1],linewidth=2.,linestyle='--',color='black',zorder=3)
 #-- also plot hand-drawn labels for zoomed in panel
 gdf.plot(ax=ax[1,1],linewidth=2.5,color='white',zorder=2)
 #-- plot interferogram
@@ -123,8 +123,8 @@ xedge, yedge = poly.exterior.xy
 ax[1,0].plot(xedge,yedge,color='maroon',linewidth=2)#,linestyle='--')
 
 #-- add legend to zoomed in plot
-ax[1,1].plot([],[],color='indigo',linewidth=1.5,label='ML GL')
-ax[1,1].plot([],[],color='indigo',linewidth=1,linestyle='--',label='ML Uncertainty')
+ax[1,1].plot([],[],color='black',linewidth=1.5,label='ML GL')
+ax[1,1].plot([],[],color='black',linewidth=1,linestyle='--',label='ML Uncertainty')
 ax[1,1].plot([],[],color='white',linewidth=1.5,label='Manual GL')
 ax[1,1].legend(loc='lower left',facecolor='silver')
 
