@@ -3,11 +3,15 @@
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yaramohajerani/GL_learning/blob/master/LICENSE)
 
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/yaramohajerani/GL_learning/graphs/commit-activity)
+
+[![Language](https://img.shields.io/badge/python-v3.7-green.svg)](https://www.python.org/)
+
 This repository contains the pipeline used for the automatic delineation of glacier grounding lines from interferograms.
 
 The step-by-step procedure is described below.
 
-For questions, contact **Yara Mohajerani** at [ymohajer@uci.edu](mailto:ymohajer@uci.edu).
+For questions, contact **Yara Mohajerani** at [ymohajer@uw.edu](mailto:ymohajer@uw.edu).
 
 ### 1. Pre-process geocoded data (geotiff files) into numpy arrays to be used in the training of the neural network:
 
@@ -22,38 +26,50 @@ This step is done in a Jupyter Notebook so that it can be run on Google Colab wi
 
 **or**
 
-**B.** Run pre-trained neural network. No need to run this if you have already run 2A.
-If you want to start from a pre-trained network, you can just use the `test_model.py` script. 
+**B.** Run pre-trained neural network on any data directory:
+
+`python run_prediction.py --DIR=< > --MODEL_DIR=< >`.
+Where `DIR` is the data directory,`MODEL_DIR` is the code directory where the model is located (the model code and `.h5` file are assumed to be in the same location). If any other run configurations are different from the default settings specified in the code, they can also be changed as inline commandline arguments as above.
+
+Note that if you want to run massive amounts of data in parallel on a computing node with Slurm commands, you can run
+
+`python make_slurm.py --DIR=< > --MODEL_DIR=< > --SLURM_DIR=< > --USER=< >`
+Where `SLURM_DIR` is the directory path for the slurm jobs to be made by `make_slurm` which can be run by the user using the master "job_list" file. `USER` is the username used for the Slurm job.
+
+
+In addition, if you want to run the network specifically on the train/test data, you can just use the `test_model.py` script. 
 
 `python test_model.py`
 
-For now you can change the setting inside the script. This script produces output for both the train and test data. 
+Again with the run configurations specified as inline commandline arguments.
 
-### 3. Optional Post-Processing Notebook for exploration and outputting multi-plot PNGs of the pipeline
-This is again in a Jupyter Notebook. Note that the next step does not depend on the output of this step so it is optional. The notebook with executable cells and documentation is `GL_postprocessing_geocoded_complex.ipynb`.
+### 3. Post-Processing: Stitching tiles together
+Here we stitch the 512x512 tiles back together before postprocessing (although the code is generic for any tile dimension as long as they're all the same):
 
-### 4. Post-Processing: Stitching tiles together
-Here we stitch the 512x512 tiles back together before postprocessing.
-
-`python stitch_tile.py --DIR=<subdirectory with outputs> --NX=<width (512)> --NY=<height (512)> --KERNEL=<guassian width>`
+`python stitch_tile.py --DIR=<subdirectory with outputs> --KERNEL=<guassian width>`
 
 The Guassian kernel refers to the variance of the Gaussian averaging kernel, givn by `kernel_weight = np.exp(-(gxx**2+gyy**2)/sigma_kernel)` where `gxx` and `gyy` are the grids.
 
 If you want to use a uniform averaging kernel instead of Gaussian kernel to average the overlapping tiles, `--noFLAG` to the command line arguments. However, it is preferable to use Gaussian averaging so that the center of each tile counts more than the edges, in order to avoid edge effects.
 
-### 5. Post-Processing: Vectorizing Results and Converting to Shapefiles
+### 4. Post-Processing: Vectorizing Results and Converting to Shapefiles
 Use the combined tiles from the previous step to convert the raster output of the neural network to vectorized LineStrings and save as Shapefiles.
 
 `python polygonize.py.py --DIR=<subdirectory with outputs> --FILTER=<minimum line threshold in meters> --OUT_BASE=<base directory for slurm outputs> --IN_BASE=<base directory for input (parent directory of "--DIR" --noMASK`
 
 The `FILTER` input refers to the minimum threshold used to clean up the output. Every line segment shorter than this threshold is disregarded. In addition, note that you can use the `--noMASK` in commandline arguments to not output training vs test masks. If not specified, masks will also be outputted. This is only useful if the input scenes are a combinatino of training and testing tiles (which is the case for the original training and testing data on the Getz Ice Shelf).
 
-### 6. Post-Processing: Drawing centerlines
+### 5. Post-Processing: Drawing centerlines
 Use the slurm files produced by `polygonize.py` in the previous step to processes centerlines in parallel. Note this is currently designed for the partitions on UC Irvine's [GreenPlanet](https://ps.uci.edu/greenplanet/Partitions-new-names), but can be adjusted accordingly for other users. This is done by calling the `run_centerline.py` script.
 
 `python run_centerline.py <input_file1> <input_file2>`
 
 Where you can list an unlimited number of input files to be run in serial. But the Slurm script runs these in parallel to significantly cut down on processing time.
+
+Note that in order to run the files in parallel with Slurm, all the user has to do is the run the master job list, e.g.:
+
+`sh total_job_list_8.0km.sh` 
+
 
 Note that currently `polygonize.py` is set up such that the centerline is done in parallel for each line segment of each DInSAR scene. If you want to combine the slurm jobs such that each scene is run as one job, run the following script:
 
@@ -65,7 +81,7 @@ where the input is the list of all files produced by `polygonize.py` (e.g. `tota
 
 is still individual shapefiles for each line segment. Note that only the lines that are not classified as noise are run through the centerline routine.
 
-### 7. Combining centerlines
+### 6. Combining centerlines
 To combine the individual centerlines produced in the previous step, run
 
 `python combine_shapefiles.py --DIR=<complete path to shapefile directory> --FILTER=<minimum line threshold in meters in exisiting files>`
