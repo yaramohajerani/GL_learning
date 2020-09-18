@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 u"""
 combine_shapfiles.py
 Yara Mohajerani (07/2020)

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 u"""
 convert_shapefile_centerline.py
 Yara Mohajerani (Last update 07/2020)

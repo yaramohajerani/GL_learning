@@ -25,12 +25,13 @@ dropout_frac = 0.2 # dropout fraction
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['MOD=','INIT=','DROPOUT=','NTEST=','RATIO=','FORMAT=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'M:I:D:N:R:F:',long_options)
+	long_options=['MOD=','DOWN=','INIT=','DROPOUT=','NTEST=','RATIO=','FORMAT=']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'M:D:I:O:N:R:F:',long_options)
 
 	#-- Set default settings
 	mod_lbl = 'atrous'
 	ninit = 32 #number of channels to start with
+	ndown = 4
 	dropout_frac = 0.2 # dropout fraction
 	n_test = 500
 	ratio = 727 # penalization ratio for GL and non-GL points based on smaller dataaset
@@ -40,7 +41,9 @@ def main():
 			mod_lbl = arg
 		elif opt in ("-I","--INIT"):
 			ninit = int(arg)
-		elif opt in ("-D","--DROPOUT"):
+		elif opt in ("-W","--DOWN"):
+			ndown = int(arg)
+		elif opt in ("-O","--DROPOUT"):
 			dropout_frac = int(arg)
 		elif opt in ("-N","--NTEST"):
 			n_test = int(arg)

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 u"""
 cleanup.py
 Yara Mohajerani (08/2020)

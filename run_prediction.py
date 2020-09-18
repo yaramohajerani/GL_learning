@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 u"""
 run_prediction.py
 by Yara Mohajerani (07/2020)

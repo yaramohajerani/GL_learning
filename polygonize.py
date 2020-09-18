@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 u"""
 polygonize.py
 Yara Mohajerani (Last update 09/2020)

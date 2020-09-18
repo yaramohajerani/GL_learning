@@ -1,6 +1,11 @@
+#!/usr/bin/env python
 u"""
-mean_difference.py
+mean_uncertainty.py
 Yara Mohajerani
+
+Output the mean width of the uncertainty contours
+Note this is indepedent from the error comparison with
+the reference manual data.
 """
 import os
 import sys

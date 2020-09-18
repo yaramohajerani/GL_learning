@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 u"""
 combine_centerline_slurms.py
 

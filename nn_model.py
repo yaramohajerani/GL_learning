@@ -1,4 +1,4 @@
-#!/anaconda2/bin/python2.7
+#!/usr/bin/env python
 u"""
 nn_model.py
 by Yara Mohajerani (Last Update 03/2020)
