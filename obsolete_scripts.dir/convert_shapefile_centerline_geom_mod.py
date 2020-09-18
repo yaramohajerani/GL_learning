@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-convert_shapefile_centerline.py
+convert_shapefile_centerline_geom_mod.py
 Yara Mohajerani (Last update 06/2020)
 
 Read output predictions and convert to shapefile lines
