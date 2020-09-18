@@ -87,7 +87,7 @@ To combine the individual centerlines produced in the previous step, run
 
 Note that `--DIR` is the full path to the directory where the shapefiles to be combined are. `--FILTER` is the same filter size previously (in meters) that is the suffix of the files to be combined.
 
-### 8. Error Analysis
+### 7. Error Analysis
 Now we can use the vectorized output from the previous step to assess the uncertainty. 
 
 `python mean_difference.py --DIR=<subdirectory with outputs> --FILTER=<minimum line threshold in meters>`
