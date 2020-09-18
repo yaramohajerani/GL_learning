@@ -18,8 +18,8 @@ ax2 = ax1.twinx()
 #-- make seafloor
 xf1 = np.arange(0,11,1)
 xf2 = np.arange(10,30)
-ax1.plot(xf1,-0.02*xf1-1.0,color='green')
-ax1.plot(xf2,-0.01*xf2-1.1,color='green')
+ax1.plot(xf1,-0.01*xf1-1.2,color='green')
+ax1.plot(xf2,-0.005*xf2-1.25,color='green')
 ax1.axvline(x=0,color='lightgray',linestyle='--')
 
 #-- make x axis

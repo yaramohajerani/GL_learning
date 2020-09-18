@@ -58,12 +58,15 @@ poly = Polygon([(x1,y1),(x1,y2),(x2,y2),(x2,y1)])
 
 #-- Set up figure
 fig = plt.figure(figsize=(8, 8))
-gs = fig.add_gridspec(2, 2)
+gs = fig.add_gridspec(40, 6)
 
 ax = {}
-ax[0] = fig.add_subplot(gs[0, :])
-ax[1] = fig.add_subplot(gs[1,0])
-ax[2] = fig.add_subplot(gs[1,1])
+ax[0] = fig.add_subplot(gs[0:30,0:4])
+ax[1] = fig.add_subplot(gs[26:38,0:3])
+ax[2] = fig.add_subplot(gs[26:38,3:6])
+ax[3] = fig.add_subplot(gs[5:20,4:6])
+ax[4] = fig.add_subplot(gs[39,1:5])
+gs.update(wspace=0.0, hspace=0.0 )
 #-- get Blues colormap so sample from
 cmap = cm.get_cmap('brg')
 
@@ -102,7 +105,6 @@ for g in range(len(gdf_tot['geometry'])):
 #-- plot box around zoomed in area
 zoom_area = PolygonPatch(poly,alpha=0.7,facecolor='cyan',zorder=1)
 ax[0].add_patch(zoom_area)
-
 
 for i,f in enumerate(gl_list):
 	gdf = gpd.read_file(f)
@@ -151,11 +153,8 @@ for i in [0,int(len(ind_sort)/2)+2 ,len(ind_sort)-7]:
 		if gdf['geometry'][g].length > 12e3:
 			x,y = gdf['geometry'][g].coords.xy
 			ax[2].plot(x,y,color=cmap(i/len(ind_sort)),linewidth=0.8,alpha=0.8)
-#-- add colorbar for dates
-fig.subplots_adjust(bottom=-0.2)
-cbar_ax = fig.add_axes([0.2, 0.07, 0.6, 0.02])
-cb = plt.colorbar(img,cax=cbar_ax,orientation="horizontal")#,pad=0.02)#,format='%.1f')
-
+#-- add colorbar for dates 
+cb = plt.colorbar(img,cax=ax[4],orientation="horizontal")#,pad=0.02)#,format='%.1f')
 
 #-- set up limits of main plot
 x1m,x2m = -3000000,3000000
@@ -176,14 +175,35 @@ for i in [1,2]:
 	ax[i].text(x2-5000,y2-1500,'1 km',horizontalalignment='center',\
 		verticalalignment='center', color='black')
 
-for i in range(3):
+#-- add track info
+g6d = gpd.read_file(os.path.join(base_dir,'GL_learning_data','2018_Sentinel-1_tracks','6d_PS.shp'))
+g12d = gpd.read_file(os.path.join(base_dir,'GL_learning_data','Archive_2018_GL_only','2018_12d_PS_GL_only_for_Yara.shp'))
+coast = gpd.read_file(os.path.join(base_dir,'data.dir','basin.dir','Gates_Basin_v1.7','ANT_Basins_IMBIE2_v1.6.shp'))
+
+g6d.plot(ax=ax[3],color='skyblue',alpha=1,zorder=1,edgecolor='gray')
+g12d.plot(ax=ax[3],color='goldenrod',alpha=1,zorder=2,edgecolor='gray')
+for geom in coast['geometry']:
+	if geom.type == 'MultiPolygon':
+		for g in geom:
+			x,y = g.exterior.coords.xy
+			ax[3].plot(x,y,color='black',linewidth=0.7,zorder=3)
+	else:
+		x,y = geom.exterior.coords.xy
+		ax[3].plot(x,y,color='black',linewidth=0.7,zorder=3)
+ax[3].scatter([],[],s=20,marker='s',color='skyblue',label='6-Day')
+ax[3].scatter([],[],s=20,marker='s',color='goldenrod',label='12-Day')
+ax[3].legend(bbox_to_anchor=(0., -0.115, 1., .102), loc='lower left',
+           ncol=2, mode="expand", borderaxespad=0.)#,edgecolor='black')
+
+for i in range(4):
 	ax[i].get_xaxis().set_ticks([])
 	ax[i].get_yaxis().set_ticks([])
 	ax[i].set_aspect('equal')
 
 ax[0].set_title('a) All Delineations')
-ax[1].set_title('b) Grounding Zone',x=0.5, y=0.9)
-ax[2].set_title('c) Uncertainty Bars',x=0.5, y=0.9)
+ax[3].set_title('b) Tracks')
+ax[1].set_title('c) Grounding Zone',x=0.5, y=0.9)
+ax[2].set_title('d) Uncertainty Bars',x=0.5, y=0.9)
 fig.subplots_adjust(wspace=0.0, hspace=0.0)
 plt.tight_layout()
 # plt.show()
