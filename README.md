@@ -10,7 +10,11 @@ This repository contains the pipeline used for the automatic delineation of glac
 
 The step-by-step procedure is described below.
 
-For questions, contact **Yara Mohajerani** at [ymohajer@uw.edu](mailto:ymohajer@uw.edu).
+For questions, contact **Yara Mohajerani** at [ymohajer@uci.edu](mailto:ymohajer@uci.edu).
+
+For a list of Python dependencies or creating a Conda environment, please refer to `requirements.txt` or `gl_env.yml`.
+
+---
 
 ### 1. Pre-process geocoded data (geotiff files) into numpy arrays to be used in the training of the neural network:
 
