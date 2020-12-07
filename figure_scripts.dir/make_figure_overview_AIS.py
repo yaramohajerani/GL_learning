@@ -11,6 +11,7 @@ import numpy.ma as ma
 import matplotlib
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+import pandas as pd
 import geopandas as gpd
 import datetime
 from PyAstronomy import pyasl
@@ -21,54 +22,58 @@ from rasterio.plot import show
 
 base_dir = os.path.expanduser('~')
 
-infile1 = os.path.join(base_dir,'GL_learning_data','combined_AllTracks_6d_centerLines_cleaned_15km.shp')
-infile2 = os.path.join(base_dir,'GL_learning_data','combined_AllTracks_12d_centerLines_cleaned_15km.shp')
-
-ddir1 = os.path.join(base_dir,'GL_learning_data','geocoded_v1','stitched.dir',\
-	'atrous_32init_drop0.2_customLossR727.dir','shapefiles.dir')
-flt_str1 = '_6.0km'
-
-ddir2 = os.path.join(base_dir,'GL_learning_data','S1_Pope-Smith-Kohler','UNUSED',\
-	'coco_PSK-UNUSED_with_null','atrous_32init_drop0.2_customLossR727.dir','stitched.dir','shapefiles.dir')
-flt_str2 = '_8.0km'
-
-fileList = os.listdir(ddir1)
-gl_list1 = [os.path.join(ddir1,f) for f in fileList if (f.endswith('%s.shp'%flt_str1) and (f.startswith('gl_')))]
-er_list1 = [os.path.join(ddir1,f) for f in fileList if (f.endswith('%s_ERR.shp'%flt_str1) and (f.startswith('gl_')))]
-
-print('# in ddir1: ',len(gl_list1))
-
-fileList = os.listdir(ddir2)
-gl_list2 = [os.path.join(ddir2,f) for f in fileList if (f.endswith('%s.shp'%flt_str2) and (f.startswith('gl_')))]
-er_list2 = [os.path.join(ddir2,f) for f in fileList if (f.endswith('%s_ERR.shp'%flt_str2) and (f.startswith('gl_')))]
-
-gl_list = sorted(gl_list1 + gl_list2)
-er_list = sorted(er_list1 + er_list2)
-
-print('# in ddir2: ',len(gl_list2))
-
-print('# of GLs: ', len(gl_list))
-print('# of ERs: ', len(er_list))
+#-- specify GL files
+file_6d = os.path.join(base_dir,'GL_learning_data','6d_results','AllTracks_6d_GL.shp')
+file_12d = os.path.join(base_dir,'GL_learning_data','12d_results','AllTracks_12d_GL.shp')
+#-- specify error files
+file_6d_err = os.path.join(base_dir,'GL_learning_data','6d_results','AllTracks_6d_uncertainty.shp')
+file_12d_err = os.path.join(base_dir,'GL_learning_data','12d_results','AllTracks_12d_uncertainty.shp')
 
 #-- set up region of interest for zoomed-in plots
-x1,x2 = -149e4,-145e4
-y1,y2 = -835e3,-805e3
-#-- make polygon
-poly = Polygon([(x1,y1),(x1,y2),(x2,y2),(x2,y1)])
+xz,yz = np.zeros((3,2)),np.zeros((3,2))
+
+#-- point on peninsula
+xz[0,:] = -2328e3,-2310e3
+yz[0,:] = 1249e3,1268e3
+
+#-- point on Getz
+# xz[1,:] = -1523e3,-1490e3
+# yz[1,:] = -803e3,-760e3
+# xz[1,:] = -149e4,-145e4
+# yz[1,:] = -835e3,-805e3
+xz[1,:] = -149e4,-146e4  #-1340e3,-1320e3
+yz[1,:] = -960e3,-933e3  #-1025e3,-1000e3
+
+xz[2,:] = 1022e3,1040e3
+yz[2,:] = 1856e3,1873e3
+
+#-- make polygons
+poly = {}
+for i in range(len(xz)):
+	poly[i] = Polygon([(xz[i,0],yz[i,0]),(xz[i,0],yz[i,1]),(xz[i,1],yz[i,1]),(xz[i,1],yz[i,0])])
 
 #-- Set up figure
 fig = plt.figure(figsize=(8, 8))
-gs = fig.add_gridspec(40, 6)
+gs = fig.add_gridspec(45, 40)
 
 ax = {}
-ax[0] = fig.add_subplot(gs[0:30,0:4])
-ax[1] = fig.add_subplot(gs[26:38,0:3])
-ax[2] = fig.add_subplot(gs[26:38,3:6])
-ax[3] = fig.add_subplot(gs[5:20,4:6])
-ax[4] = fig.add_subplot(gs[39,1:5])
-gs.update(wspace=0.0, hspace=0.0 )
-#-- get Blues colormap so sample from
-cmap = cm.get_cmap('brg')
+ax[0] = fig.add_subplot(gs[0:40,8:32])
+ax[1] = fig.add_subplot(gs[28:42,28:])
+#-- subplots on left
+ax[2] = fig.add_subplot(gs[6:21,1:9])
+ax[3] = fig.add_subplot(gs[16:31,1:9])
+#-- subplots below
+ax[4] = fig.add_subplot(gs[27:42,4:13])
+ax[5] = fig.add_subplot(gs[27:42,15:24])
+#-- subplots on right
+ax[6] = fig.add_subplot(gs[6:21,31:40])
+ax[7] = fig.add_subplot(gs[16:31,31:40])
+#-- colorbar axis
+# ax[8] = fig.add_subplot(gs[43,6:16])
+ax[8] = fig.add_subplot(gs[40,2:26])
+gs.update(wspace=0.0, hspace=0.0)
+#-- get colormap so sample from
+cmap = cm.get_cmap('viridis')  #('brg')
 
 #-- add background velocity field
 vel_file = os.path.join(base_dir,'data.dir','basin.dir','ANT_velocity.dir',\
@@ -80,132 +85,186 @@ vel_cmap = plt.get_cmap('pink')
 vel_cmap.set_bad(color='white')
 vel = src.read()
 vel_masked = ma.masked_where(vel <= 0, vel)
-# tmp_img = ax[0].imshow(np.arange(4).reshape(2,2), cmap=vel_cmap, vmin=0, vmax=1000,alpha=0.5)
 vel_img = show(vel_masked, transform=src.transform,cmap=vel_cmap,ax=ax[0],vmin=0,vmax=2000,alpha=0.3)
 # fig.colorbar(tmp_img,ax=ax[0],orientation="horizontal",pad=0.02,extend='max',alpha=0.5)
 src.close()
 
-#-- plot all grounding lines
-tmean = []
-lines = []
-indices = []
 #-------------------------------------------------------
 #- 1) Plot all GLs
 #-------------------------------------------------------
-gdf_tot = gpd.read_file(infile1)
-for g in range(len(gdf_tot['geometry'])):
-		if gdf_tot['geometry'][g].length > 10e3:
-			x,y = gdf_tot['geometry'][g].coords.xy
-			ax[0].plot(x,y,'-k',linewidth=0.5,zorder=2)
-gdf_tot = gpd.read_file(infile2)
-for g in range(len(gdf_tot['geometry'])):
-		if gdf_tot['geometry'][g].length > 10e3:
-			x,y = gdf_tot['geometry'][g].coords.xy
-			ax[0].plot(x,y,'-k',linewidth=0.5,zorder=2)
-#-- plot box around zoomed in area
-zoom_area = PolygonPatch(poly,alpha=0.7,facecolor='cyan',zorder=1)
-ax[0].add_patch(zoom_area)
+gdf_tot1 = gpd.read_file(file_6d)
+gdf_tot2 = gpd.read_file(file_12d)
+gdf_err1 = gpd.read_file(file_6d_err)
+gdf_err2 = gpd.read_file(file_12d_err)
+#-- combine the two dataframes together 
+gdf = gpd.GeoDataFrame(pd.concat([gdf_tot1,gdf_tot2], ignore_index=True), crs=gdf_tot1.crs)
+gdf_err = gpd.GeoDataFrame(pd.concat([gdf_err1,gdf_err2], ignore_index=True), crs=gdf_err1.crs)
+#-- free up memory
+gdf_tot1,gdf_tot2 = [],[]
+gdf_err1,gdf_err2 = [],[]
+for g in range(len(gdf['geometry'])):
+	if gdf['geometry'][g].length > 10e3:
+		x_all,y_all = gdf['geometry'][g].coords.xy
+		ax[0].plot(x_all,y_all,'-k',linewidth=0.5,zorder=1)
 
-for i,f in enumerate(gl_list):
-	gdf = gpd.read_file(f)
+#-- plot boxes around zoomed in areas
+for i,x_offset,y_offset in zip(range(len(xz)),[0,-3e5,0],[2e5,-3e5,2.5e5]):
+	zoom_area = PolygonPatch(poly[i],alpha=0.8,facecolor='red',edgecolor='red',zorder=2)
+	ax[0].add_patch(zoom_area)
+	ax[0].text(np.mean(xz[i])+x_offset,np.mean(yz[i])+y_offset,i+1,color='red', weight='bold')
+
+#-------------------------------------------------------
+#-- add track info
+#-------------------------------------------------------
+g6d = gpd.read_file(os.path.join(base_dir,'GL_learning_data','2018_Sentinel-1_tracks','6d_PS.shp'))
+g12d = gpd.read_file(os.path.join(base_dir,'GL_learning_data','Archive_2018_GL_only','2018_12d_PS_GL_only_for_Yara.shp'))
+coast = gpd.read_file(os.path.join(base_dir,'data.dir','basin.dir','Gates_Basin_v1.7','ANT_Basins_IMBIE2_v1.6.shp'))
+
+g6d.plot(ax=ax[1],color='skyblue',alpha=1,zorder=1,edgecolor='gray')
+g12d.plot(ax=ax[1],color='goldenrod',alpha=1,zorder=2,edgecolor='gray')
+for geom in coast['geometry']:
+	if geom.type == 'MultiPolygon':
+		for g in geom:
+			x,y = g.exterior.coords.xy
+			ax[1].plot(x,y,color='black',linewidth=0.5,zorder=3)
+	else:
+		x,y = geom.exterior.coords.xy
+		ax[1].plot(x,y,color='black',linewidth=0.5,zorder=3)
+ax[1].scatter([],[],s=20,marker='s',color='skyblue',label='6-Day')
+ax[1].scatter([],[],s=20,marker='s',color='goldenrod',label='12-Day')
+ax[1].legend(bbox_to_anchor=(0., -0.15, 1., .102), loc='lower left',
+           ncol=2, mode="expand", borderaxespad=0.)#,edgecolor='black')
+ 
+#-------------------------------------------------------
+#- 2) Plot zoomed-in GZ
+#-------------------------------------------------------
+#-- initialize dictionaries
+tmean = {0: [], 1: [], 2: []}
+indices = {0: [], 1: [], 2: []}
+lines = {0: [], 1: [], 2: []}
+ind_sort = {0: [], 1: [], 2: []}
+for i in range(len(gdf)):
+	#-- get filename to check date
+	f = gdf['FILENAME'][i]
 	#-- get dates
 	dates = os.path.basename(f).split('_')[2].split('-')
-
 	#-- extract geometry to see if it's in region of interest
-	for k in range(len(gdf['geometry'])):
-		ll = gdf['geometry'][k]
-		if ll.intersects(poly):
-			indices.append(i)
-			lines.append(ll)
+	ll = gdf['geometry'][i]
+	#-- Loop through the subplots
+	for m in range(len(xz)):
+		if ll.intersects(poly[m]):
+			indices[m].append(i)
+			lines[m].append(ll)
 			tdec = np.zeros(4)
 			for j in range(4):
 				#-- convert to datetime format
 				dd = datetime.datetime(int(dates[j][:2]),int(dates[j][2:4]),int(dates[j][4:]))
 				tdec[j] = pyasl.decimalYear(dd)
 			#-- get mean of 4 dates
-			tmean.append(np.mean(tdec) + 2000)
+			tmean[m].append(np.mean(tdec) + 2000)
 
+for m in range(len(xz)):
+	#-- convert tmean to numpy array
+	tmean[m] = np.array(tmean[m])
+	#-- sort dates
+	ind_sort[m] = np.argsort(tmean[m])
+	for c,i in enumerate(ind_sort[m]):
+		if lines[m][i].length > 8e3:
+			xs,ys = lines[m][i].coords.xy
+			ax[2*(m+1)].plot(xs,ys,linewidth=0.4,alpha=0.8,color=cmap(c/len(ind_sort[m])),zorder=1)
 
-#-- convert tmean to numpy array
-tmean = np.array(tmean)
-
-#-- sort dates
-ind_sort = np.argsort(tmean)
-#-------------------------------------------------------
-#- 2) Plot zoomed-in GZ
-#-------------------------------------------------------
-for c,i in enumerate(ind_sort):
-	if lines[i].length > 8e3:
-		xs,ys = lines[i].coords.xy
-		ax[1].plot(xs,ys,linewidth=0.4,alpha=0.8,color=cmap(c/len(ind_sort)),zorder=1)
 #-- add colorbar for dates
-img = ax[1].imshow([tmean], cmap=cmap)
+img = ax[4].imshow([tmean[1]], cmap=cmap)
 img.set_clim(2018,2019)
+cb = plt.colorbar(img,cax=ax[8],orientation="horizontal")#,pad=0.02)#,format='%.1f')
 
 #-------------------------------------------------------
 #- 3) Plot uncertanties
 #-------------------------------------------------------
-for i in [0,int(len(ind_sort)/2)+2 ,len(ind_sort)-7]:
-	idx = ind_sort[i]
-	file_ind = indices[idx]
-	gdf = gpd.read_file(er_list[file_ind])
-	for g in range(len(gdf['geometry'])):
-		if gdf['geometry'][g].length > 12e3:
-			x,y = gdf['geometry'][g].coords.xy
-			ax[2].plot(x,y,color=cmap(i/len(ind_sort)),linewidth=0.8,alpha=0.8)
-#-- add colorbar for dates 
-cb = plt.colorbar(img,cax=ax[4],orientation="horizontal")#,pad=0.02)#,format='%.1f')
+#-- initialize dictionaries
+err_tmean = {0: [], 1: [], 2: []}
+err_indices = {0: [], 1: [], 2: []}
+err_lines = {0: [], 1: [], 2: []}
+err_ind_sort = {0: [], 1: [], 2: []}
+for i in range(len(gdf_err)):
+	#-- get filename to check date
+	f = gdf_err['FILENAME'][i]
+	#-- get dates
+	dates = os.path.basename(f).split('_')[2].split('-')
+	#-- extract geometry to see if it's in region of interest
+	ll = gdf_err['geometry'][i]
+	#-- Loop through the subplots
+	for m in range(len(xz)):
+		if ll.intersects(poly[m]):
+			err_indices[m].append(i)
+			err_lines[m].append(ll)
+			tdec = np.zeros(4)
+			for j in range(4):
+				#-- convert to datetime format
+				dd = datetime.datetime(int(dates[j][:2]),int(dates[j][2:4]),int(dates[j][4:]))
+				tdec[j] = pyasl.decimalYear(dd)
+			#-- get mean of 4 dates
+			err_tmean[m].append(np.mean(tdec) + 2000)
+
+for m,start,mid,end in zip(range(len(xz)),[0,5,0],[2,5,2],[-6,-8,-7]):
+	#-- convert tmean to numpy array
+	err_tmean[m] = np.array(err_tmean[m])
+	#-- sort dates
+	err_ind_sort[m] = np.argsort(err_tmean[m])
+	for i in [start,int(len(err_ind_sort[m])/2)+mid ,len(err_ind_sort[m])+end]:
+		if err_lines[m][i].length > 12e3:
+			x,y = err_lines[m][i].coords.xy
+			ax[2*(m+1)+1].plot(x,y,color=cmap(i/len(err_ind_sort[m])),linewidth=0.8,alpha=0.8)
+
 
 #-- set up limits of main plot
-x1m,x2m = -3000000,3000000
+x1m,x2m = -3000000,3100000
 y1m,y2m = -2600000,2600000
 
 ax[0].set_xlim((x1m,x2m))
 ax[0].set_ylim((y1m,y2m))
 # #-- add ruler for main plot
-ax[0].plot([x2m-1.5e5,x2m-1.5e5],[y2m-2e5,y2m-4e5],color='black',linewidth=2.)
-ax[0].text(x2m-6e5,y2m-3e5,'200 km',horizontalalignment='center',\
+ax[0].plot([x2m-5e5,x2m-5e5],[y2m-2e5,y2m-4e5],color='black',linewidth=2.)
+ax[0].text(x2m-10e5,y2m-3e5,'200 km',horizontalalignment='center',\
 	verticalalignment='center', color='black')
 
-for i in [1,2]:
-	ax[i].set_xlim([x1,x2])
-	ax[i].set_ylim([y1,y2])
-	#-- add ruler for zoomed in plots
-	ax[i].plot([x2-1000,x2-1000],[y2-1000,y2-2000],color='black',linewidth=2.)
-	ax[i].text(x2-5000,y2-1500,'1 km',horizontalalignment='center',\
-		verticalalignment='center', color='black')
-
-#-- add track info
-g6d = gpd.read_file(os.path.join(base_dir,'GL_learning_data','2018_Sentinel-1_tracks','6d_PS.shp'))
-g12d = gpd.read_file(os.path.join(base_dir,'GL_learning_data','Archive_2018_GL_only','2018_12d_PS_GL_only_for_Yara.shp'))
-coast = gpd.read_file(os.path.join(base_dir,'data.dir','basin.dir','Gates_Basin_v1.7','ANT_Basins_IMBIE2_v1.6.shp'))
-
-g6d.plot(ax=ax[3],color='skyblue',alpha=1,zorder=1,edgecolor='gray')
-g12d.plot(ax=ax[3],color='goldenrod',alpha=1,zorder=2,edgecolor='gray')
-for geom in coast['geometry']:
-	if geom.type == 'MultiPolygon':
-		for g in geom:
-			x,y = g.exterior.coords.xy
-			ax[3].plot(x,y,color='black',linewidth=0.7,zorder=3)
+for i in range(len(xz)):
+	#-- limit of zoomed in plot
+	ax[2*(i+1)].set_xlim(xz[i])
+	ax[2*(i+1)].set_ylim(yz[i])
+	#-- limit of uncertainty plot
+	ax[2*(i+1)+1].set_xlim(xz[i])
+	ax[2*(i+1)+1].set_ylim(yz[i])
+	if i == 0:
+		y_offset = np.abs(yz[i,1]-yz[i,0])/2
+		barsize = 1000
+	elif i == 1:
+		y_offset = 1800
+		barsize = 2000
 	else:
-		x,y = geom.exterior.coords.xy
-		ax[3].plot(x,y,color='black',linewidth=0.7,zorder=3)
-ax[3].scatter([],[],s=20,marker='s',color='skyblue',label='6-Day')
-ax[3].scatter([],[],s=20,marker='s',color='goldenrod',label='12-Day')
-ax[3].legend(bbox_to_anchor=(0., -0.115, 1., .102), loc='lower left',
-           ncol=2, mode="expand", borderaxespad=0.)#,edgecolor='black')
+		y_offset = 1000
+		barsize = 1000
+	#-- add ruler for zoomed in plots
+	ax[2*(i+1)].plot([xz[i,1]-barsize,xz[i,1]-barsize],[yz[i,1]-y_offset,yz[i,1]-y_offset-barsize],color='black',linewidth=2.)
+	ax[2*(i+1)].text(xz[i,1]-4*barsize,yz[i,1]-y_offset-barsize/2,'%i km'%(barsize/1000),horizontalalignment='center',\
+		verticalalignment='center', color='black')
+	#-- number the plot
+	ax[2*(i+1)].text(xz[i,0]+barsize,yz[i,1]-2000,i+1,bbox={'edgecolor':'darkgray','facecolor':'lightgray'},color='red',weight='bold')
+	#-- ruler for uncertainty plots
+	ax[2*(i+1)+1].plot([xz[i,1]-barsize,xz[i,1]-barsize],[yz[i,1]-y_offset,yz[i,1]-y_offset-barsize],color='black',linewidth=2.)
+	ax[2*(i+1)+1].text(xz[i,1]-4*barsize,yz[i,1]-y_offset-barsize/2,'%i km'%(barsize/1000),horizontalalignment='center',\
+		verticalalignment='center', color='black')
+	#-- number the uncertainty plot
+	ax[2*(i+1)+1].text(xz[i,0]+barsize,yz[i,1]-2000,i+1,bbox={'edgecolor':'darkgray','facecolor':'lightgray'},color='red',weight='bold')
 
-for i in range(4):
+for i in range(8):
 	ax[i].get_xaxis().set_ticks([])
 	ax[i].get_yaxis().set_ticks([])
 	ax[i].set_aspect('equal')
 
-ax[0].set_title('a) All Delineations')
-ax[3].set_title('b) Tracks')
-ax[1].set_title('c) Grounding Zone',x=0.5, y=0.9)
-ax[2].set_title('d) Uncertainty Bars',x=0.5, y=0.9)
+# ax[0].set_title('a) All Delineations',bbox={'edgecolor':'darkgray','facecolor':'lightgray'})
+# ax[1].set_title('b) Tracks',bbox={'edgecolor':'darkgray','facecolor':'lightgray'})
+# ax[2].set_title('c) Grounding Zone (1)',x=0.5, y=0.9, bbox={'edgecolor':'darkgray','facecolor':'lightgray'})
 fig.subplots_adjust(wspace=0.0, hspace=0.0)
-plt.tight_layout()
-# plt.show()
-plt.savefig(os.path.join(base_dir,'GL_learning_data','overview_raw_AIS.pdf'),format='PDF')
+plt.savefig(os.path.join(base_dir,'GL_learning_data','overview_AIS.pdf'),format='PDF',bbox_inches='tight')
 plt.close(fig)
