@@ -255,7 +255,7 @@ for i in range(len(xz)):
 	ax[2*(i+1)+1].text(xz[i,1]-4*barsize,yz[i,1]-y_offset-barsize/2,'%i km'%(barsize/1000),horizontalalignment='center',\
 		verticalalignment='center', color='black')
 	#-- number the uncertainty plot
-	ax[2*(i+1)+1].text(xz[i,0]+barsize,yz[i,1]-2000,i+1,bbox={'edgecolor':'darkgray','facecolor':'lightgray'},color='red',weight='bold')
+	ax[2*(i+1)+1].text(xz[i,0]+barsize,yz[i,1]-2700,'{0:d}\nUncertainty'.format(i+1),bbox={'edgecolor':'darkgray','facecolor':'lightgray'},color='red',weight='bold',fontsize=6)
 
 for i in range(8):
 	ax[i].get_xaxis().set_ticks([])
