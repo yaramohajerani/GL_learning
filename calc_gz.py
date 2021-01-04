@@ -6,6 +6,7 @@ by Yara Mohajerani (12/2020)
 Calculate the width of the grounding zone by drawing an intersecting 
 line in the direction of flow based on the velocity field
 """
+from logging import warn
 import os
 import sys
 import getopt
@@ -113,17 +114,43 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 	for i,(xi,yi) in enumerate(zip(xlist,ylist)):
 		if i%100 == 0:
 			print(i)
+		
+		#-- A) velocity based approach
+		#-- get list of distances to get a list of closest points
 		#- For a given coordinate, get the flow angle and then the intersecting line
-		ii = np.argmin(np.abs(x - xi))
-		jj = np.argmin(np.abs(y - yi))
-		#-- find flow angle
-		ang = np.arctan(vy[jj,ii]/vx[jj,ii])
-		#-- Now constuct a line of a given length, centered at the 
-		#-- chosen coordinates, with the angle above
-		dx,dy = dist*np.cos(ang),dist*np.sin(ang)
-		vel_transects[i] = LineString([[x[ii]-dx,y[jj]-dy],[x[ii],y[jj]],[x[ii]+dx,y[jj]+dy]])
+		ii = np.argsort(np.abs(x - xi))
+		jj = np.argsort(np.abs(y - yi))
+
+		#-- loop through the first 20 points and get the minimum width, so we dont
+		#-- rely on a single point
+		tmp_trans = {}
+		tmp_dist = np.zeros(25)
+		cc = 0
+		for k in range(5):
+			for w in range(5):
+				#-- find flow angle
+				ang = np.arctan(vy[ii[k],jj[w]]/vx[ii[k],jj[w]])
+				#-- Now constuct a line of a given length, centered at the 
+				#-- chosen coordinates, with the angle above
+				dx,dy = dist*np.cos(ang),dist*np.sin(ang)
+				tmp_trans[cc] = LineString([[x[ii[k]]-dx,y[jj[w]]-dy],[x[ii[k]],y[jj[w]]],[x[ii[k]]+dx,y[jj[w]]+dy]])
+				
+				if tmp_trans[cc].intersects(gz_poly):
+					vel_int = tmp_trans[cc].intersection(gz_poly)
+					tmp_dist[cc] = vel_int.length
+				else:
+					print("No intersection. i={0:d}, k={1:d}, w={2:d}".format(i,k,w))
+				cc += 1
+
+		ind_min = np.argmin(tmp_dist)	
+		vel_transects[i] = tmp_trans[ind_min]
+		gz[i] = tmp_dist[ind_min]
+
+		
 		# vel_int = vel_transects[i].intersection(gz_poly)
 		# gz[i] = vel_int.length
+
+		#-- B) tangent based appriach
 		found_match = False
 		if gz_poly.geom_type == 'Polygon':
 			print("GZ object is polygon.")
@@ -153,20 +180,31 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 		#-- 1) to get the tangent, get the index of the closest point on the boundary
 		#-- of the gz polython
 		dist2 = (x_ext - xi)**2 + (y_ext - yi)**2
-		ind = np.argmin(dist2)
+		# ind = np.argmin(dist2)
+		ind = np.argsort(dist2)
 
-		#-- 2) calculate the slope of the tangent
-		tangent = (y_ext[ind]-y_ext[ind-1])/(x_ext[ind]-x_ext[ind-1])
+		#-- loop through the first few points and get the minimum width, so we dont
+		#-- rely on a single point
+		tmp_trans = {}
+		tmp_dist = np.zeros(10)
+		for k in range(10):
+			#-- 2) calculate the slope of the tangent
+			tangent = (y_ext[ind[k]]-y_ext[ind[k-1]])/(x_ext[ind[k]]-x_ext[ind[k-1]])
 
-		#-- 3) calculate slope of perpendicular line
-		slope_ang = np.arctan(-1/tangent)
+			#-- 3) calculate slope of perpendicular line
+			slope_ang = np.arctan(-1/tangent)
 
-		#-- 4) construct new transect and calculate width
-		dx,dy = dist*np.cos(slope_ang),dist*np.sin(slope_ang)
-		perp_transects[i] = LineString([[xi-dx,yi-dy],[xi,yi],[xi+dx,yi+dy]])
+			#-- 4) construct new transect and calculate width
+			dx,dy = dist*np.cos(slope_ang),dist*np.sin(slope_ang)
+			tmp_trans[k] = LineString([[x_ext[ind[k]]-dx,y_ext[ind[k]]-dy],[x_ext[ind[k]],y_ext[ind[k]]],[x_ext[ind[k]]+dx,y_ext[ind[k]]+dy]])
 
-		perp_int = perp_transects[i].intersection(gz_poly)
-		gz[i] = perp_int.length
+			perp_int = tmp_trans[k].intersection(gz_poly)
+			tmp_dist[k] = perp_int.length
+
+		ind_min = np.argmin(tmp_dist)
+		perp_transects[i] = tmp_trans[ind_min]
+		gz[i] = tmp_dist[ind_min]
+		
 
 	#-- write grounding zone widths to file
 	outfile = os.path.join(os.path.dirname(GL_FILE),'GZ_widths_{0}.csv'.format(region))
@@ -201,8 +239,9 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 		#-- Now plot the transect for the given index
 		lx,ly = vel_transects[ip].coords.xy
 		ax.plot(lx,ly,linewidth=2.0,alpha=1.0,color='pink',zorder=3)
-		lx2,ly2 = perp_transects[ip].coords.xy
-		ax.plot(lx2,ly2,linewidth=2.0,alpha=1.0,color='red',zorder=4)
+		if ip in perp_transects.keys():
+			lx2,ly2 = perp_transects[ip].coords.xy
+			ax.plot(lx2,ly2,linewidth=2.0,alpha=1.0,color='red',zorder=4)
 		ax.text(xlist[ip]+5e3,ylist[ip]+5e3,'{0:.1f}km'.format(gz[ip]/1e3),color='darkred',\
 			fontsize='small',fontweight='bold',bbox=dict(facecolor='mistyrose', alpha=0.5))
 	ax.plot([],[],color='pink',label="Velocity-based Intersect")
