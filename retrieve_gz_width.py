@@ -126,12 +126,8 @@ def main():
 
 	GL_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
 		'6d_results','AllTracks_6d_GL.shp')
-	GZ_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
-		'6d_results','GZ_Getz_final.shp')
 	WIDTH_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
 		'6d_results','GZ_Getz_widths_400m.shp')
-	CENTER_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
-		'6d_results','GZ_Getz_centerline.shp')
 	BASIN_FILE = os.path.join(pathlib.Path.home(),'data.dir','basin.dir',\
 		'Gates_Basin_v1.7','Basins_v2.4.shp')
 	region = 'Getz'
@@ -140,7 +136,7 @@ def main():
 		if opt in ("-L","--GL_FILE"):
 			GL_FILE = os.path.expanduser(arg)
 		elif opt in ("-W","--WIDTH_FILE"):
-			GZ_FILE = os.path.expanduser(arg)
+			WIDTH_FILE = os.path.expanduser(arg)
 		elif opt in ("-B","--BASIN_FILE"):
 			BASIN_FILE = os.path.expanduser(arg)
 		elif opt in ("-R","--REGION"):

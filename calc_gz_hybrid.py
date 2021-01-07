@@ -1,10 +1,12 @@
 #!/usr/bin/env
 u"""
-calc_gz.py
-by Yara Mohajerani (12/2020)
+calc_gz_hybrid.py
+by Yara Mohajerani (01/2021)
 
 Calculate the width of the grounding zone by drawing an intersecting 
-line in the direction of flow based on the velocity field
+line in the direction of flow based on the velocity field in areas of 
+fast flow, and retrieve widths from centerline calculation in QGIS
+for areas of slow flow.
 """
 from logging import warn
 import os
@@ -15,17 +17,17 @@ import random
 import numpy as np
 import geopandas as gpd
 import netCDF4 as nc
-from numpy.core.defchararray import isdigit
-from shapely.geometry import Point,MultiPoint,LineString,Polygon,MultiPolygon
+from shapely.geometry import Point,MultiPoint,LineString,MultiLineString,Polygon,MultiPolygon
 from shapely import ops
 from descartes import PolygonPatch
 import matplotlib.pyplot as plt
-from shapely.geometry.multipolygon import MultiPolygon
 
 #-- function to calculate the GZ width
-def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
+def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0,vel_thr=0):
 	#-- read the grounding lines
-	gdf = gpd.read_file(GL_FILE)
+	df_gl = gpd.read_file(GL_FILE)
+	#-- read widths
+	df_w = gpd.read_file(WIDTH_FILE)
 	#-- read the basin file
 	basins = gpd.read_file(BASIN_FILE)
 	idx = basins.index[basins['NAME']==region]
@@ -36,11 +38,19 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 	region_poly = poly.buffer(5e3)
 
 	lines = []
-	for i in range(len(gdf)):
+	dates = []
+	for i in range(len(df_gl)):
 		#-- extract geometry to see if it's in region of interest
-		ll = gdf['geometry'][i]
+		ll = df_gl['geometry'][i]
 		if ll.intersects(region_poly):
 			lines.append(ll)
+			dates.append(df_gl['FILENAME'][i].split("_")[2])
+
+	#-- get width lines
+	ws = []
+	for i in range(len(df_w)):
+		ws.append(df_w['geometry'][i])
+	widths = MultiLineString(ws)
 	
 	#-- merge all lines into linestring
 	lm = ops.linemerge(lines)
@@ -77,7 +87,7 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 				df['center_x'].append(x[0])
 				df['center_y'].append(y[0])
 				out_geo.append(p)
-		out_gdf = gpd.GeoDataFrame(df,geometry=out_geo,crs=gdf.crs)
+		out_gdf = gpd.GeoDataFrame(df,geometry=out_geo,crs=df_gl.crs)
 		out_gdf.to_file(gz_file,driver='ESRI Shapefile')
 
 	#-- read velocity field
@@ -98,8 +108,10 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 	xlist = np.zeros(N)
 	ylist = np.zeros(N)
 	gz = np.zeros(N)
+	date1_list = [None]*N
+	date2_list = [None]*N
 	vel_transects = {}
-	perp_transects = {}
+	cn_transects = {}
 	random.seed(13)
 	for i in range(N):
 		#-- draw a random index for line along multilines
@@ -119,100 +131,58 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 		#-- A) velocity based approach
 		#-- get list of distances to get a list of closest points
 		#- For a given coordinate, get the flow angle and then the intersecting line
-		ii = np.argsort(np.abs(x - xi))
-		jj = np.argsort(np.abs(y - yi))
+		ii = np.argmin(np.abs(x - xi))
+		jj = np.argmin(np.abs(y - yi))
 
-		#-- loop through the first 20 points and get the minimum width, so we dont
-		#-- rely on a single point
-		tmp_trans = {}
-		tmp_dist = np.zeros(25)
-		cc = 0
-		for k in range(5):
-			for w in range(5):
-				#-- find flow angle
-				ang = np.arctan(vy[jj[w],ii[k]]/vx[jj[w],ii[k]])
-				#-- Now constuct a line of a given length, centered at the 
-				#-- chosen coordinates, with the angle above
-				dx,dy = dist*np.cos(ang),dist*np.sin(ang)
-				tmp_trans[cc] = LineString([[x[ii[k]]-dx,y[jj[w]]-dy],[x[ii[k]],y[jj[w]]],[x[ii[k]]+dx,y[jj[w]]+dy]])
-				
-				if tmp_trans[cc].intersects(gz_poly):
-					vel_int = tmp_trans[cc].intersection(gz_poly)
-					tmp_dist[cc] = vel_int.length
-				else:
-					print("No intersection. i={0:d}, k={1:d}, w={2:d}".format(i,k,w))
-				cc += 1
+		#-- chech if velocity is above required threshold
+		vel_mag = np.sqrt(vy[jj,ii]**2 + vx[jj,ii]**2)
+		if vel_mag > vel_thr:
+			#-- find flow angle
+			ang = np.arctan(vy[jj,ii]/vx[jj,ii])
+			#-- Now constuct a line of a given length, centered at the 
+			#-- chosen coordinates, with the angle above
+			dx,dy = dist*np.cos(ang),dist*np.sin(ang)
+			vel_transects[i] = LineString([[x[ii]-dx,y[jj]-dy],[x[ii],y[jj]],[x[ii]+dx,y[jj]+dy]])
+			#-- get intersection length
+			vel_int = vel_transects[i].intersection(gz_poly)
+			gz[i] = vel_int.length
 
-		ind_min = np.argmin(tmp_dist)	
-		vel_transects[i] = tmp_trans[ind_min]
-		gz[i] = tmp_dist[ind_min]
-
-		
-		# vel_int = vel_transects[i].intersection(gz_poly)
-		# gz[i] = vel_int.length
-
-		#-- B) tangent based appriach
-		found_match = False
-		if gz_poly.geom_type == 'Polygon':
-			print("GZ object is polygon.")
-			if vel_transects[i].intersects(gz_poly):
-				x_ext,y_ext = gz_poly.exterior.coords.xy
-				found_match = True
-		elif gz_poly.geom_type == 'MultiPolygon':
-			for sp in gz_poly:
-				if vel_transects[i].intersects(sp):
-					if found_match:
-						print("More than one intersecting polygon found for point {0:d}".format(i))
-					else:
-						#-- get coordinates of the exterior of GZ polygon to be used later
-						x_ext,y_ext = sp.exterior.coords.xy
-						found_match = True
+			#-- get dates
+			pt0 = vel_int.interpolate(0,normalized=True)
+			pt1 = vel_int.interpolate(1,normalized=True)
+			for l in range(len(lines)):
+				if lines[l].distance(pt1) < 0.2:
+					date1_list[i] = dates[l]
+				elif lines[l].distance(pt0) < 0.2:
+					date2_list[i] = dates[l]
 		else:
-			sys.exit("Exiting. GZ object type: ",gz_poly.geom_type)
-		
-		#-- Check if any of the polygons intersect
-		if not found_match:
-			print("No matches found for point {0:d}".format(i))
-			#-- move on to the next point and skip rest of iteration
-			continue
+			#-- B) retrieve width from QGIS centerline width calculation
+			#-- first get the closest line to the point
+			po = Point(xi,yi)
+			wdist = np.zeros(len(widths))
+			for wi in range(len(widths)):
+				wdist[wi] = widths[wi].distance(po)
+			ind_w = np.argmin(wdist)
 
-		#-- Calculate GZ without velocity for comparison by constructing a perpendicular
-		#-- line to the gz polygon at each point
-		#-- 1) to get the tangent, get the index of the closest point on the boundary
-		#-- of the gz polython
-		dist2 = (x_ext - xi)**2 + (y_ext - yi)**2
-		# ind = np.argmin(dist2)
-		ind = np.argsort(dist2)
-
-		#-- loop through the first few points and get the minimum width, so we dont
-		#-- rely on a single point
-		tmp_trans = {}
-		tmp_dist = np.zeros(10)
-		for k in range(10):
-			#-- 2) calculate the slope of the tangent
-			tangent = (y_ext[ind[k]]-y_ext[ind[k-1]])/(x_ext[ind[k]]-x_ext[ind[k-1]])
-
-			#-- 3) calculate slope of perpendicular line
-			slope_ang = np.arctan(-1/tangent)
-
-			#-- 4) construct new transect and calculate width
-			dx,dy = dist*np.cos(slope_ang),dist*np.sin(slope_ang)
-			tmp_trans[k] = LineString([[x_ext[ind[k]]-dx,y_ext[ind[k]]-dy],[x_ext[ind[k]],y_ext[ind[k]]],[x_ext[ind[k]]+dx,y_ext[ind[k]]+dy]])
-
-			perp_int = tmp_trans[k].intersection(gz_poly)
-			tmp_dist[k] = perp_int.length
-
-		ind_min = np.argmin(tmp_dist)
-		perp_transects[i] = tmp_trans[ind_min]
-		gz[i] = tmp_dist[ind_min]
-		
+			cn_transects[i] = widths[ind_w]
+			#-- get length
+			gz[i] = cn_transects[i].length	
+			#-- also get the corresponding dates
+			pt0 = cn_transects[i].interpolate(0,normalized=True)
+			pt1 = cn_transects[i].interpolate(1,normalized=True)
+			for l in range(len(lines)):
+				if lines[l].distance(pt1) < 0.2:
+					date1_list[i] = dates[l]
+				elif lines[l].distance(pt0) < 0.2:
+					date2_list[i] = dates[l]
 
 	#-- write grounding zone widths to file
-	outfile = os.path.join(os.path.dirname(GL_FILE),'GZ_widths_{0}.csv'.format(region))
+	outfile = os.path.join(os.path.dirname(GL_FILE),'GZ_widths-hybrid_{0}.csv'.format(region))
 	outfid = open(outfile,'w')
-	outfid.write('X (m),Y (m),width (km)\n')
+	outfid.write('X (m),Y (m),width (km),date1,date2\n')
 	for i in range(N):
-		outfid.write('{0:.6f},{1:.6f},{2:.3f}\n'.format(xlist[i],ylist[i],gz[i]/1e3))
+		outfid.write('{0:.6f},{1:.6f},{2:.3f},{3},{4}\n'.\
+		format(xlist[i],ylist[i],gz[i]/1e3,date1_list[i],date2_list[i]))
 	outfid.close()
 
 	#-- plot a sample of points to check the grounding zones
@@ -238,15 +208,16 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 			print("minimum distance to previous points: ", pt.distance(MultiPoint(plot_pts)))
 			plot_pts.append(pt)
 		#-- Now plot the transect for the given index
-		lx,ly = vel_transects[ip].coords.xy
-		ax.plot(lx,ly,linewidth=2.0,alpha=1.0,color='pink',zorder=3)
-		if ip in perp_transects.keys():
-			lx2,ly2 = perp_transects[ip].coords.xy
-			ax.plot(lx2,ly2,linewidth=2.0,alpha=1.0,color='red',zorder=4)
+		if ip in vel_transects.keys():
+			lx,ly = vel_transects[ip].coords.xy
+			ax.plot(lx,ly,linewidth=2.0,alpha=1.0,color='red',zorder=3)
+		elif ip in cn_transects.keys():
+			lx2,ly2 = cn_transects[ip].coords.xy
+			ax.plot(lx2,ly2,linewidth=2.0,alpha=1.0,color='orange',zorder=4)
 		ax.text(xlist[ip]+5e3,ylist[ip]+5e3,'{0:.1f}km'.format(gz[ip]/1e3),color='darkred',\
 			fontsize='small',fontweight='bold',bbox=dict(facecolor='mistyrose', alpha=0.5))
-	ax.plot([],[],color='pink',label="Velocity-based Intersect")
-	ax.plot([],[],color='red',label="Tangent-based Intersect")
+	ax.plot([],[],color='red',label="Velocity-based Intersect")
+	ax.plot([],[],color='orange',label="Centerline-based Intersect")
 	ax.get_xaxis().set_ticks([])
 	ax.get_yaxis().set_ticks([])
 	ax.set_title("Grounding Zone Width for {0}".format(region))
@@ -258,21 +229,26 @@ def calc_gz(GL_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0):
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['GL_FILE=','BASIN_FILE=','VEL_FILE=','REGION=','DIST=','NUMBER=']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'G:B:V:R:D:N:',long_options)
+	long_options=['GL_FILE=','BASIN_FILE=','VEL_FILE=','REGION=','DIST=','NUMBER=','THRESHOLD']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'G:B:V:R:D:N:T:',long_options)
 
 	GL_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
 		'6d_results','AllTracks_6d_GL.shp')
+	WIDTH_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
+		'6d_results','GZ_Getz_widths_400m.shp')
 	BASIN_FILE = os.path.join(pathlib.Path.home(),'data.dir','basin.dir',\
 		'Gates_Basin_v1.7','Basins_v2.4.shp')
 	VEL_FILE = os.path.join(pathlib.Path.home(),'data.dir','basin.dir',\
 		'ANT_velocity.dir','antarctica_ice_velocity_450m_v2.nc')
 	region = 'Getz'
-	dist = 10e3
+	dist = 20e3
 	N = 500
+	vel_thr = 50
 	for opt, arg in optlist:
 		if opt in ("-G","--GL_FILE"):
 			GL_FILE = os.path.expanduser(arg)
+		elif opt in ("-W","--WIDTH_FILE"):
+			WIDTH_FILE = os.path.expanduser(arg)
 		elif opt in ("-B","--BASIN_FILE"):
 			BASIN_FILE = os.path.expanduser(arg)
 		elif opt in ("-V","--VEL_FILE"):
@@ -283,10 +259,12 @@ def main():
 			dist = int(arg)
 		elif opt in ("-N","--NUMBER"):
 			N = int(arg)
+		elif opt in ("-T","--THRESHOLD"):
+			vel_thr = float(arg)
 
 	#-- call the function to calculate the grounding zone width
-	calc_gz(GL_FILE=GL_FILE,BASIN_FILE=BASIN_FILE,VEL_FILE=VEL_FILE,\
-		region=region,dist=dist,N=N)
+	calc_gz(GL_FILE=GL_FILE,WIDTH_FILE=WIDTH_FILE,BASIN_FILE=BASIN_FILE,\
+		VEL_FILE=VEL_FILE,region=region,dist=dist,N=N,vel_thr=vel_thr)
 
 #-- run main program
 if __name__ == '__main__':
