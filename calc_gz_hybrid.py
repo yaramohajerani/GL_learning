@@ -8,7 +8,6 @@ line in the direction of flow based on the velocity field in areas of
 fast flow, and retrieve widths from centerline calculation in QGIS
 for areas of slow flow.
 """
-from logging import warn
 import os
 import sys
 import getopt
@@ -17,13 +16,14 @@ import random
 import numpy as np
 import geopandas as gpd
 import netCDF4 as nc
+from copy import copy
 from shapely.geometry import Point,MultiPoint,LineString,MultiLineString,Polygon,MultiPolygon
 from shapely import ops
 from descartes import PolygonPatch
 import matplotlib.pyplot as plt
 
 #-- function to calculate the GZ width
-def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,N=0,vel_thr=0):
+def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',POINT_FILE='',region='',dist=0,N=0,vel_thr=0):
 	#-- read the grounding lines
 	df_gl = gpd.read_file(GL_FILE)
 	#-- read widths
@@ -105,6 +105,8 @@ def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,
 	#-- in order to generate points, we randomly draw a line from the
 	#-- mutliline, and then draw a random distance to go along the line to get
 	#-- a coordinate. We repeat until the specified number of points is reached
+	#-- first we will the array with the given points in POINTS_FILE, and fill
+	#-- the rest randomly.
 	xlist = np.zeros(N)
 	ylist = np.zeros(N)
 	gz = np.zeros(N)
@@ -112,8 +114,19 @@ def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,
 	date2_list = [None]*N
 	vel_transects = {}
 	cn_transects = {}
+	
+	#-- read given points
+	df_pts = gpd.read_file(POINT_FILE)
+	#-- reproject to the projection of GL data
+	df_pts = df_pts.to_crs(df_gl.crs)
+	N_given = len(df_pts)
+	print("{0:d} points prescribed out a total of {1:d}".format(N_given,N))
+	for i in range(N_given):
+		xx,yy = df_pts['geometry'][i].coords.xy
+		xlist[i] = float(xx[0])
+		ylist[i] = float(yy[0])
 	random.seed(13)
-	for i in range(N):
+	for i in range(N_given,N):
 		#-- draw a random index for line along multilines
 		ind_line = random.randrange(0,len(lm))
 		rand_line = lm[ind_line]
@@ -123,6 +136,11 @@ def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,
 		xlist[i] = float(xx[0])
 		ylist[i] = float(yy[0])
 	
+	#-- make special polygons that require a different transect length
+	plong = Polygon([[-1175399.2293594137,-1124281.6845298712],
+					[-1166026.3695500833,-1132757.1428680948],
+					[-1194493.9384390623,-1149957.337730963],
+					[-1198332.822509906,-1146467.4431211061]])
 	#-- loop through points and calculate GZ
 	for i,(xi,yi) in enumerate(zip(xlist,ylist)):
 		if i%100 == 0:
@@ -141,7 +159,10 @@ def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,
 			ang = np.arctan(vy[jj,ii]/vx[jj,ii])
 			#-- Now constuct a line of a given length, centered at the 
 			#-- chosen coordinates, with the angle above
-			dx,dy = dist*np.cos(ang),dist*np.sin(ang)
+			if Point(xi,yi).within(plong):
+				dx,dy = 25e3*np.cos(ang),25e3*np.sin(ang)
+			else:
+				dx,dy = dist*np.cos(ang),dist*np.sin(ang)
 			vel_transects[i] = LineString([[x[ii]-dx,y[jj]-dy],[x[ii],y[jj]],[x[ii]+dx,y[jj]+dy]])
 			#-- get intersection length
 			vel_int = vel_transects[i].intersection(gz_poly)
@@ -193,15 +214,19 @@ def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,
 	for il in lines:
 		xs,ys = il.coords.xy
 		ax.plot(xs,ys,linewidth=0.4,alpha=0.8,color='k',zorder=2)
-	for i in range(20):
-		ip = random.randrange(0,N)
-		#-- while distance to any of the previous points is less than 20km,
-		#-- keep trying new indices (doesn't apply to 1st point)
-		if i == 0:
-			plot_pts = [Point(xlist[ip],ylist[ip])]
+	for i in range(30):
+		if i < N_given:
+			ip = copy(i)
+			if i == 0:
+				plot_pts = [Point(xlist[ip],ylist[ip])]
+			else:
+				plot_pts.append(Point(xlist[ip],ylist[ip]))
 		else:
+			ip = random.randrange(0,N)
+			#-- while distance to any of the previous points is less than 20km,
+			#-- keep trying new indices (doesn't apply to 1st point)
 			pt = Point(xlist[ip],ylist[ip])
-			while (pt.distance(MultiPoint(plot_pts)) < 20e3):
+			while (pt.distance(MultiPoint(plot_pts)) < 12e3):
 				ip = random.randrange(0,N)
 				pt = Point(xlist[ip],ylist[ip])
 			#-- now we can ensure the points aren't overlapping
@@ -212,12 +237,13 @@ def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,
 			lx,ly = vel_transects[ip].coords.xy
 			ax.plot(lx,ly,linewidth=2.0,alpha=1.0,color='red',zorder=3)
 		elif ip in cn_transects.keys():
-			lx2,ly2 = cn_transects[ip].coords.xy
-			ax.plot(lx2,ly2,linewidth=2.0,alpha=1.0,color='orange',zorder=4)
+			lx,ly = cn_transects[ip].coords.xy
+			ax.plot(lx,ly,linewidth=2.0,alpha=1.0,color='darkorange',zorder=3)
 		ax.text(xlist[ip]+5e3,ylist[ip]+5e3,'{0:.1f}km'.format(gz[ip]/1e3),color='darkred',\
-			fontsize='small',fontweight='bold',bbox=dict(facecolor='mistyrose', alpha=0.5))
+			fontsize=6,fontweight='bold',bbox=dict(facecolor='mistyrose', alpha=0.5))
+		# ax.scatter(xlist[ip],ylist[ip],s=10,color='darkorchid',zorder=4,alpha=0.5)
 	ax.plot([],[],color='red',label="Velocity-based Intersect")
-	ax.plot([],[],color='orange',label="Centerline-based Intersect")
+	ax.plot([],[],color='darkorange',label="Centerline-based Intersect")
 	ax.get_xaxis().set_ticks([])
 	ax.get_yaxis().set_ticks([])
 	ax.set_title("Grounding Zone Width for {0}".format(region))
@@ -229,8 +255,8 @@ def calc_gz(GL_FILE='',WIDTH_FILE='',BASIN_FILE='',VEL_FILE='',region='',dist=0,
 #-- main function
 def main():
 	#-- Read the system arguments listed after the program
-	long_options=['GL_FILE=','BASIN_FILE=','VEL_FILE=','REGION=','DIST=','NUMBER=','THRESHOLD']
-	optlist,arglist = getopt.getopt(sys.argv[1:],'G:B:V:R:D:N:T:',long_options)
+	long_options=['GL_FILE=','BASIN_FILE=','VEL_FILE=','POINT_FILE','REGION=','DIST=','NUMBER=','THRESHOLD']
+	optlist,arglist = getopt.getopt(sys.argv[1:],'G:B:V:P:R:D:N:T:',long_options)
 
 	GL_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
 		'6d_results','AllTracks_6d_GL.shp')
@@ -240,10 +266,12 @@ def main():
 		'Gates_Basin_v1.7','Basins_v2.4.shp')
 	VEL_FILE = os.path.join(pathlib.Path.home(),'data.dir','basin.dir',\
 		'ANT_velocity.dir','antarctica_ice_velocity_450m_v2.nc')
+	POINT_FILE = os.path.join(pathlib.Path.home(),'GL_learning_data',\
+		'GZ_manual_estimate_points','Getz_Glaciers_Points_for_Grounding_Zone_estimate.shp')
 	region = 'Getz'
-	dist = 20e3
+	dist = 10e3
 	N = 500
-	vel_thr = 50
+	vel_thr = 300
 	for opt, arg in optlist:
 		if opt in ("-G","--GL_FILE"):
 			GL_FILE = os.path.expanduser(arg)
@@ -253,6 +281,8 @@ def main():
 			BASIN_FILE = os.path.expanduser(arg)
 		elif opt in ("-V","--VEL_FILE"):
 			VEL_FILE = os.path.expanduser(arg)
+		elif opt in ("-P","--POINT_FILE"):
+			POINT_FILE = os.path.expanduser(arg)
 		elif opt in ("-R","--REGION"):
 			region = arg
 		elif opt in ("-D","--DIST"):
@@ -264,7 +294,7 @@ def main():
 
 	#-- call the function to calculate the grounding zone width
 	calc_gz(GL_FILE=GL_FILE,WIDTH_FILE=WIDTH_FILE,BASIN_FILE=BASIN_FILE,\
-		VEL_FILE=VEL_FILE,region=region,dist=dist,N=N,vel_thr=vel_thr)
+		VEL_FILE=VEL_FILE,POINT_FILE=POINT_FILE,region=region,dist=dist,N=N,vel_thr=vel_thr)
 
 #-- run main program
 if __name__ == '__main__':
