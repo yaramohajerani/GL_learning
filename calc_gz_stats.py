@@ -22,14 +22,29 @@ df = pd.read_csv(infile)
 ml = np.array(df['ML_WIDTH(m)'])/1e3
 he = np.array(df['HE_WIDTH(m)'])/1e3
 ra = np.array(df['ML/HE ratio'])
-
+print(np.mean(ra))
 #-- remove non-valid elements
 # ii = np.where((he<0.1) | (he>8))
 ii = np.where((he<0.1) | (he>20))
 ml[ii] = np.nan
 he[ii] = np.nan
 ra[ii] = np.nan
-print(np.nanmin(ra),np.nanmax(ra))
+
+print("Mean Ratio (first 14) {0:.2f}".format(np.nanmean(ra[:14])))
+print("Mean Ratio (ALL) {0:.2f}".format(np.nanmean(ra)))
+
+#-- make histogram
+fig = plt.figure(1,figsize=(6,5))
+#-- only 
+plt.hist(np.array([ml,he]).transpose(),bins=100,color=['darkolivegreen','peru'],label=['ML','HE'])
+plt.legend(prop={'size': 18})
+plt.xlim([0,8])
+plt.xlabel("GZ Width Bins (km)",fontsize=18)
+plt.ylabel('Number of Transects',fontsize=18)
+plt.text(0.25,0.5,r"$ML:HE$ Width Ratio $=$ %.1f"%np.nanmean(ra),transform=fig.transFigure,fontsize=18)
+plt.savefig(infile.replace('.csv','_distribution.pdf'),format='PDF')
+plt.close(fig)
+
 #-- make scatter plot
 fig = plt.figure(1,figsize=(8,5))
 sc = plt.scatter(ml,he,c=ra,s=20, vmin=0,vmax=100, cmap='viridis',alpha=0.7)
@@ -41,7 +56,6 @@ cbar.ax.tick_params(labelsize=14)
 x = sm.add_constant(ml)
 model = sm.OLS(he,x,missing='drop')
 fit = model.fit()
-print(fit.summary()) 
 #-- get trend and uncertainty
 tr = fit.params[1]
 er = fit.bse[1]
@@ -58,5 +72,5 @@ plt.ylabel('HE widths (km)',fontsize=18)
 plt.tick_params(labelsize=14)
 plt.xticks([0,5,10,15,20])
 plt.yticks([0,5,10,15,20])
-plt.savefig(infile.replace('.csv','_distribution.pdf'),format='PDF')
+plt.savefig(infile.replace('.csv','_regression.pdf'),format='PDF')
 plt.close(fig)
