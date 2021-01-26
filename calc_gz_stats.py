@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator
 
 infile = os.path.join(pathlib.Path.home(),'GL_learning_data',\
 	'6d_results','GZ_widths-hybrid_Getz_comparison.csv')
@@ -22,7 +23,10 @@ df = pd.read_csv(infile)
 ml = np.array(df['ML_WIDTH(m)'])/1e3
 he = np.array(df['HE_WIDTH(m)'])/1e3
 ra = np.array(df['ML/HE ratio'])
-print(np.mean(ra))
+print(len(ra))
+print(np.std(ra))
+print("mean and std of ratios before filtering {0:.2f} +/- {1:.2f}".format(np.mean(ra),np.std(ra)/np.sqrt(len(ra))))
+
 #-- remove non-valid elements
 # ii = np.where((he<0.1) | (he>8))
 ii = np.where((he<0.1) | (he>20))
@@ -32,16 +36,23 @@ ra[ii] = np.nan
 
 print("Mean Ratio (first 14) {0:.2f}".format(np.nanmean(ra[:14])))
 print("Mean Ratio (ALL) {0:.2f}".format(np.nanmean(ra)))
+jj = np.where(ml < 10)
+print("Mean without Berry Glacier {0:.2f}".format(np.nanmean(ra[jj])))
+
+#-- get the uncertainty in the mean ratio
+N = np.count_nonzero(~np.isnan(ra))
+# ra_err = np.nanstd(ra)/np.sqrt(N)
+ra_err = (np.nanmax(ra)-np.nanmin(ra))/(2*np.sqrt(N))
 
 #-- make histogram
-fig = plt.figure(1,figsize=(6,5))
-#-- only 
-plt.hist(np.array([ml,he]).transpose(),bins=100,color=['darkolivegreen','peru'],label=['ML','HE'])
-plt.legend(prop={'size': 18})
-plt.xlim([0,8])
-plt.xlabel("GZ Width Bins (km)",fontsize=18)
-plt.ylabel('Number of Transects',fontsize=18)
-plt.text(0.25,0.5,r"$ML:HE$ Width Ratio $=$ %.1f"%np.nanmean(ra),transform=fig.transFigure,fontsize=18)
+fig,ax = plt.subplots(1,1,figsize=(6,5))
+ax.hist(np.array([ml,he]).transpose(),bins=100,color=['green','darkorange'],label=['ML','HE'])
+ax.legend(prop={'size': 18})
+ax.set_xlim([0,8])
+ax.set_xlabel("GZ Width Bins (km)",fontsize=18)
+ax.set_ylabel('Number of Transects',fontsize=18)
+ax.text(0.25,0.5,r"$R_{mean}^{ML:HE} = $ %.1f $\pm$ %.1f"%(np.nanmean(ra),ra_err),transform=fig.transFigure,fontsize=18)
+ax.xaxis.set_minor_locator(AutoMinorLocator())
 plt.savefig(infile.replace('.csv','_distribution.pdf'),format='PDF')
 plt.close(fig)
 
