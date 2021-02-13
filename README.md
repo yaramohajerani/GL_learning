@@ -1,5 +1,5 @@
 
-# Automatic Delineation of Glacier Grounding Lineswith Differential Interferometric Synthetic-ApertureRadar and Deep Learning
+# Automatic Delineation of Glacier Grounding Lines in Differential Interferometric Synthetic-Aperture Radar Data using Deep Learning
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/yaramohajerani/GL_learning/blob/master/LICENSE)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/yaramohajerani/GL_learning/graphs/commit-activity)
