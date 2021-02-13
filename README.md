@@ -58,7 +58,7 @@ If you want to use a uniform averaging kernel instead of Gaussian kernel to aver
 ### 4. Post-Processing: Vectorizing Results and Converting to Shapefiles
 Use the combined tiles from the previous step to convert the raster output of the neural network to vectorized LineStrings and save as Shapefiles.
 
-`python polygonize.py.py --DIR=<subdirectory with outputs> --FILTER=<minimum line threshold in meters> --OUT_BASE=<base directory for slurm outputs> --IN_BASE=<base directory for input (parent directory of "--DIR" --noMASK`
+`python polygonize.py --DIR=<subdirectory with outputs> --FILTER=<minimum line threshold in meters> --OUT_BASE=<base directory for slurm outputs> --IN_BASE=<base directory for input (parent directory of "--DIR" --noMASK`
 
 The `FILTER` input refers to the minimum threshold used to clean up the output. Every line segment shorter than this threshold is disregarded. In addition, note that you can use the `--noMASK` in commandline arguments to not output training vs test masks. If not specified, masks will also be outputted. This is only useful if the input scenes are a combinatino of training and testing tiles (which is the case for the original training and testing data on the Getz Ice Shelf).
 
@@ -97,3 +97,34 @@ Now we can use the vectorized output from the previous step to assess the uncert
 `python mean_difference.py --DIR=<subdirectory with outputs> --FILTER=<minimum line threshold in meters>`
 
 The arguments are the same as the vectorization step above. In addition, since the previous step categorizes and labels each geometric object, we can do the error analysis with or without pinning points. The default settings do NOT include pinning points. If you want to include them, add the `--PINNING` flag to the commandline arguments.
+
+## Grounding Zone Analysis
+In order to calculate the grounding zone purely from the velocity direction, use
+
+`python calc_gz.py --GL_FILE=<GL file path> --BASIN_FILE=<Shapefile with all the basins> --VEL_FILE=<velocity file> --REGION=<name of region to analyze (default Getz)>`
+
+You can also use the `--DIST` option to specify the length of the transects to be drawn across the grounding zone (default 10km) and `--NUM` for the number of transects to be drawn (default 500).
+
+Note that in addition to the velocity-based transects, the program also outputs the estimates from a geometric approach to finding the perpendicular transect to the grounding zone. 
+
+Also note that the program is currently set up to choose the shortest transect at each point among 20 purturblation to make sure the shortest path is taken. However, this could have the side effect of finding the tangent (instead of the perpendicular transect) at some points.
+
+A better option is to use a hybrid approach where velocity-based transects are used in areas of fast flow, and a pure geometric centerline-based approach is used in areas of slow flow. 
+
+The centerline-based approach is currently done manually in QGIS using the [Geometric Attributes](https://plugins.qgis.org/plugins/geometric_attributes/) plugin, and the widths transects are saved to a Shapefile. 
+
+Then, the following script can be used to retrieve the hybrid width estimates:
+
+`python calc_gz_hybrid.py --WIDTH_FILE=<widths from QGIS> --POINT_FILE=<shapefile for any prescribed coordinates to get GZ (optional)> --THRESHOLD=<threshold for geometric vs velocity based transects (m/yr)>`
+The rest of the commandline input arguments are the same as `calc_gz.py` above.
+
+Also note this script does NOT use the ensemble approach for finding the shortest path (used in `calc_gz.py`), which achieves better results.
+
+Furthermore, you can calculate the GZ widths from hydrostatic equilibrium at the same coordinates, and compare with the delineated GZ widths:
+
+`python hydrostatic_gz.py`
+
+`python calc_gz_stats.py`
+
+Note that the input file paths are specified inside the scripts if they need to be changed. 
+
