@@ -6,7 +6,9 @@
 [![Language](https://img.shields.io/badge/python-v3.7-green.svg)](https://www.python.org/)
 [![Ask Me Anything !](https://img.shields.io/badge/Ask%20me-anything-1abc9c.svg)](mailto:ymohajer@uw.edu)
 
-This repository contains the pipeline used for the automatic delineation of glacier grounding lines from interferograms.
+This repository contains the pipeline used for the automatic delineation of glacier grounding lines from Differential InSAR interferograms, as described in
+
+> Mohajerani, Y., Jeong, S., Scheuchl, B. et al. Automatic delineation of glacier grounding lines in differential interferometric synthetic-aperture radar data using deep learning. Sci Rep 11, 4992 (2021). https://doi.org/10.1038/s41598-021-84309-3
 
 The step-by-step procedure is described below.
 
