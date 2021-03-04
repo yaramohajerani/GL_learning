@@ -65,7 +65,6 @@ conda-env=2.6.0=1
 conda-package-handling=1.6.1=py37h1de35cc_0
 conda-verify=3.4.2=py_1
 contextlib2=0.6.0=py_0
-cryptography=2.7=py37ha12b0ac_0
 curl=7.65.3=ha441bb4_0
 cycler=0.10.0=py37_0
 cython=0.29.13=py37h0a44026_0
@@ -268,7 +267,6 @@ pyastronomy=0.15.1=pypi_0
 pycodestyle=2.5.0=py37_0
 pycosat=0.6.3=py37h1de35cc_0
 pycparser=2.19=py37_0
-pycrypto=2.6.1=py37h1de35cc_9
 pycurl=7.43.0.3=py37ha12b0ac_0
 pydot=1.4.1=pypi_0
 pyflakes=2.1.1=py37_0
