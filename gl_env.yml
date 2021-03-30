@@ -5,15 +5,14 @@ channels:
 dependencies:
   - _ipyw_jlab_nb_ext_conf=0.1.0=py37_0
   - _r-mutex=1.0.0=anacondar_1
+  - _tflow_select=2.3.0=mkl
+  - absl-py=0.12.0=py37hecd8cb5_0
   - affine=2.3.0=py_0
   - alabaster=0.7.12=py37_0
-  - anaconda=2019.10=py37_0
-  - anaconda-client=1.7.2=py37_0
-  - anaconda-navigator=1.9.12=py37_0
-  - anaconda-project=0.8.3=py_0
   - appnope=0.1.0=py37_0
   - appscript=1.1.0=py37h1de35cc_0
   - asn1crypto=1.0.1=py37_0
+  - astor=0.8.1=py37hecd8cb5_0
   - astroid=2.3.1=py37_0
   - astropy=3.2.2=py37h1de35cc_0
   - atomicwrites=1.3.0=py37_1
@@ -32,15 +31,15 @@ dependencies:
   - blas=1.0=mkl
   - bleach=3.1.0=py37_0
   - blosc=1.16.3=hd9629dc_0
-  - bokeh=1.3.4=py37_0
   - boto=2.49.0=py37_0
   - bottleneck=1.2.1=py37h1d22016_1
   - bwidget=1.9.11=1
   - bzip2=1.0.8=h1de35cc_0
-  - ca-certificates=2019.8.28=0
+  - c-ares=1.17.1=h9ed2024_0
+  - ca-certificates=2021.1.19=hecd8cb5_1
   - cairo=1.14.12=hc4e6be7_4
   - cctools=895=1
-  - certifi=2019.9.11=py37_0
+  - certifi=2020.12.5=py37hecd8cb5_0
   - cffi=1.12.3=py37hb5b8e2f_0
   - cftime=1.1.2=py37h776bbcc_0
   - chardet=3.0.4=py37_1003
@@ -57,8 +56,6 @@ dependencies:
   - colorama=0.4.1=py37_0
   - colorspacious=1.1.2=pyh24bf2e0_0
   - compiler-rt=4.0.1=hcfea43d_1
-  - conda=4.8.3=py37hc8dfbb8_1
-  - conda-build=3.18.9=py37_3
   - conda-env=2.6.0=1
   - conda-package-handling=1.6.1=py37h1de35cc_0
   - conda-verify=3.4.2=py_1
@@ -67,7 +64,6 @@ dependencies:
   - cycler=0.10.0=py37_0
   - cython=0.29.13=py37h0a44026_0
   - cytoolz=0.10.0=py37h1de35cc_0
-  - dask=2.5.2=py_0
   - dask-core=2.5.2=py_0
   - dbus=1.13.6=h90a0687_0
   - decorator=4.4.0=py37_1
@@ -89,6 +85,7 @@ dependencies:
   - fribidi=1.0.5=h1de35cc_0
   - fsspec=0.5.2=py_0
   - future=0.18.2=py37_0
+  - gast=0.4.0=py_0
   - gdal=2.3.3=py37hbe65578_0
   - geopandas=0.4.1=py_0
   - geos=3.7.1=h0a44026_0
@@ -104,6 +101,7 @@ dependencies:
   - graphite2=1.3.13=h2098e52_0
   - graphviz=2.40.1=hefbbd9a_2
   - greenlet=0.4.15=py37h1de35cc_0
+  - grpcio=1.16.1=py37h044775b_1
   - gsl=2.4=h1de35cc_4
   - h5py=2.9.0=py37h3134771_0
   - harfbuzz=1.8.8=hb8d4a28_0
@@ -115,6 +113,7 @@ dependencies:
   - idna=2.8=py37_0
   - imageio=2.6.0=py37_0
   - imagesize=1.1.0=py37_0
+  - importlib-metadata=3.7.3=py37hecd8cb5_1
   - importlib_metadata=0.23=py37_0
   - intel-openmp=2019.4=233
   - ipykernel=5.1.2=py37h39e3cac_0
@@ -139,6 +138,10 @@ dependencies:
   - jupyterlab=1.1.4=pyhf63ae98_0
   - jupyterlab_server=1.0.6=py_0
   - kealib=1.4.7=hf5ed860_6
+  - keras=2.3.1=0
+  - keras-applications=1.0.8=py_1
+  - keras-base=2.3.1=py37_0
+  - keras-preprocessing=1.1.2=pyhd3eb1b0_0
   - keyring=18.0.0=py37_0
   - kiwisolver=1.1.0=py37h0a44026_0
   - krb5=1.16.1=hddcf347_7
@@ -160,6 +163,7 @@ dependencies:
   - libnetcdf=4.6.1=hd5207e6_2
   - libpng=1.6.37=ha441bb4_0
   - libpq=11.2=h051b688_0
+  - libprotobuf=3.11.4=hd9629dc_0
   - libsodium=1.0.16=h3efe00b_0
   - libspatialindex=1.9.3=h0a44026_0
   - libspatialite=4.3.0a=h644ec7d_19
@@ -177,6 +181,7 @@ dependencies:
   - lzo=2.10=h362108e_2
   - make=4.2.1=h3efe00b_1
   - mapclassify=2.2.0=py_0
+  - markdown=3.3.4=py37hecd8cb5_0
   - markupsafe=1.1.1=py37h1de35cc_0
   - matplotlib=3.1.1=py37h54f8f79_0
   - matplotlib-base=3.0.3=py37habd5b94_1
@@ -210,11 +215,10 @@ dependencies:
   - numexpr=2.7.0=py37h7413580_0
   - numpy=1.17.2=py37h99e6662_0
   - numpy-base=1.17.2=py37h6575580_0
-  - numpydoc=0.9.1=py_0
   - olefile=0.46=py37_0
   - openjpeg=2.3.0=hb95cd4c_1
   - openpyxl=3.0.0=py_0
-  - openssl=1.1.1d=h1de35cc_2
+  - openssl=1.1.1k=h9ed2024_0
   - packaging=19.2=py_0
   - pandas=0.25.1=py37h0a44026_0
   - pandoc=2.2.3.2=0
@@ -229,7 +233,6 @@ dependencies:
   - pep8=1.7.1=py37_0
   - pexpect=4.7.0=py37_0
   - pickleshare=0.7.5=py37_0
-  - pillow=6.2.0=py37hb68e598_0
   - pip=19.2.3=py37_0
   - pixman=0.38.0=h1de35cc_0
   - pkginfo=1.5.0.1=py37_0
@@ -240,6 +243,7 @@ dependencies:
   - proj4=5.2.0=h0a44026_1
   - prometheus_client=0.7.1=py_0
   - prompt_toolkit=2.0.10=py_0
+  - protobuf=3.11.4=py37h0a44026_0
   - psutil=5.6.3=py37h1de35cc_0
   - psycopg2=2.8.4=py37ha12b0ac_0
   - ptyprocess=0.6.0=py37_0
@@ -254,7 +258,6 @@ dependencies:
   - pygments=2.4.2=py_0
   - pylint=2.4.2=py37_0
   - pyodbc=4.0.27=py37h0a44026_0
-  - pyopenssl=19.0.0=py37_0
   - pyparsing=2.4.2=py_0
   - pyproj=1.9.6=py37h9c430a6_0
   - pyqt=5.9.2=py37h655552a_2
@@ -283,17 +286,16 @@ dependencies:
   - qtpy=1.9.0=py_0
   - rasterio=1.0.21=py37h9a122fd_0
   - readline=7.0=h1de35cc_5
-  - requests=2.22.0=py37_0
   - ripgrep=0.10.0=hc07d326_0
   - rope=0.14.0=py_0
   - rtree=0.9.4=py37_1
   - ruamel_yaml=0.15.46=py37h1de35cc_0
   - scikit-image=0.15.0=py37h0a44026_0
   - scikit-learn=0.21.3=py37h27c97d8_0
+  - scipy=1.4.1=py37h9fa6033_0
   - seaborn=0.9.0=py37_0
   - send2trash=1.5.0=py37_0
   - setuptools=41.4.0=py37_0
-  - shapely=1.6.4=py37he8793f5_0
   - simplegeneric=0.8.1=py37_2
   - singledispatch=3.4.0.3=py37_0
   - sip=4.19.8=py37h0a44026_0
@@ -304,7 +306,6 @@ dependencies:
   - sortedcollections=1.1.2=py37_0
   - sortedcontainers=2.1.0=py37_0
   - soupsieve=1.9.3=py37_0
-  - sphinx=2.2.0=py_0
   - sphinxcontrib=1.0=py37_1
   - sphinxcontrib-applehelp=1.0.1=py_0
   - sphinxcontrib-devhelp=1.0.1=py_0
@@ -313,13 +314,18 @@ dependencies:
   - sphinxcontrib-qthelp=1.0.2=py_0
   - sphinxcontrib-serializinghtml=1.1.3=py_0
   - sphinxcontrib-websupport=1.1.2=py_0
-  - spyder=3.3.6=py37_0
   - spyder-kernels=0.5.2=py37_0
   - sqlalchemy=1.3.9=py37h1de35cc_0
   - sqlite=3.30.0=ha441bb4_0
+  - statsmodels=0.11.1=py37haf1e3a3_0
   - sympy=1.4=py37_0
   - tbb=2019.8=h04f5b5a_0
   - tblib=1.4.0=py_0
+  - tensorboard=1.14.0=py37h80053f4_0
+  - tensorflow=1.14.0=mkl_py37h085be34_0
+  - tensorflow-base=1.14.0=mkl_py37h5a24fda_0
+  - tensorflow-estimator=1.14.0=py_0
+  - termcolor=1.1.0=py37hecd8cb5_1
   - terminado=0.8.2=py37_0
   - testpath=0.4.2=py37_0
   - tk=8.6.8=ha441bb4_0
@@ -328,9 +334,9 @@ dependencies:
   - tornado=6.0.3=py37h1de35cc_0
   - tqdm=4.36.1=py_0
   - traitlets=4.3.3=py37_0
+  - typing_extensions=3.7.4.3=pyha847dfd_0
   - unicodecsv=0.14.1=py37_0
   - unixodbc=2.3.7=h1de35cc_0
-  - urllib3=1.24.2=py37_0
   - wcwidth=0.1.7=py37_0
   - webencodings=0.5.1=py37_1
   - werkzeug=0.16.0=py_0
@@ -352,29 +358,6 @@ dependencies:
   - zlib=1.2.11=h1de35cc_3
   - zstd=1.3.7=h5bba6e5_0
   - pip:
-    - absl-py==0.9.0
-    - astor==0.8.1
-    - cachetools==4.0.0
-    - centerline==0.6.3
-    - gast==0.2.2
-    - grpcio==1.27.2
-    - keras==2.3.1
-    - keras-applications==1.0.8
-    - keras-preprocessing==1.1.0
-    - markdown==3.2.1
-    - matplotlib-scalebar==0.6.2
-    - oauthlib==3.1.0
-    - opt-einsum==3.2.0
-    - protobuf==3.11.3
-    - pyasn1==0.4.8
-    - pyasn1-modules==0.2.8
-    - pyastronomy==0.15.1
-    - pydot==1.4.1
-    - pyskeleton==0.3.6
-    - requests-oauthlib==1.3.0
-    - scipy==1.4.1
-    - tensorboard==2.1.1
-    - tensorflow==2.1.0
-    - tensorflow-estimator==2.1.0
-    - termcolor==1.1.0
-
+    - pillow==8.1.2
+    - pyastronomy==0.15.2
+    - shapely==1.7.1

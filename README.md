@@ -15,7 +15,7 @@ The step-by-step procedure is described below.
 
 For questions, contact **Yara Mohajerani** at [ymohajer@uci.edu](mailto:ymohajer@uci.edu).
 
-For a list of Python dependencies or creating a Conda environment, please refer to `requirements.txt` or `gl_env.yml`.
+For a list of Python dependencies or creating a Conda environment, please refer to  `gl_env.yml`.  In addition, you also need to install `label_centerlines` from [this repo](https://github.com/ungarj/label_centerlines).
 
 ---
 
