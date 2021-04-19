@@ -6,7 +6,7 @@ import sys
 import os
 
 def get_tile_list(path_tiles):
-    list_tiles_fullpath=glob.glob('{}/*_gl*.*'.format(path_tiles))
+    list_tiles_fullpath=glob.glob('{}/gl*.*'.format(path_tiles))
     
     list_tiles=[None]*len(list_tiles_fullpath)
     print('Reformatting tile list.')
@@ -22,7 +22,7 @@ def DinSAR_dict_from_tile_list(list_tiles):
     for i, tile in enumerate(list_tiles):
         seg_tile=tile.split('_')
         #list_dinsar_all[i]='_'.join(seg_tile[:-3])
-        list_dinsar_all[i]='_'.join(seg_tile[:7])
+        list_dinsar_all[i]='_'.join(seg_tile[:6])
     list_dinsar_uniq=list(set(list_dinsar_all))
 
     #build up the dict frame
@@ -35,7 +35,7 @@ def DinSAR_dict_from_tile_list(list_tiles):
     for i, tile in enumerate(list_tiles):
         seg_tile=tile.split('_')
         #tile_sub='_'.join(seg_tile[:-3])
-        tile_sub='_'.join(seg_tile[:7])
+        tile_sub='_'.join(seg_tile[:6])
         dict_dinsar[tile_sub].append(tile)
 
     num_dinsar=len(list_dinsar_uniq)
